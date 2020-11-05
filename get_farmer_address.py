@@ -4,7 +4,7 @@ import pandas as pd
 
 def get_farmers_df(path_to_delivery_csv_file):
     unique_farmers = pd.read_csv(path_to_delivery_csv_file).drop_duplicates('orgnr')
-    return unique_farmers[['orgnr', 'navn', 'komnr']]
+    return unique_farmers[['orgnr']]
 
 
 def get_brreg_data(orgnr):
@@ -21,8 +21,6 @@ def get_brreg_data(orgnr):
 def get_address_and_commune(farmers_df):
     for index, row in farmers_df.iterrows():
         orgnr = row['orgnr']
-        name = row['navn']
-        commune_id = row['komnr']
 
         if index % 500 == 0:
             print(f"Status: downloaded {index} of total {len(farmers_df)}. {(index / len(farmers_df)) * 100}%")
@@ -51,7 +49,7 @@ def get_address_and_commune(farmers_df):
     return cleaned_farmers_df
 
 
-farmers_df = get_farmers_df("data/leveransedata 2013-2018.csv")
+farmers_df = get_farmers_df("data/leveransedata.csv")
 farmers_df_populated = get_address_and_commune(farmers_df)
 farmers_populated_renamed_df = farmers_df_populated.rename(columns={'navn': 'name', 'komnr': 'commune_id'})
-farmers_populated_renamed_df.to_csv("farmers_with_address.csv", index=False)
+farmers_populated_renamed_df.to_csv("data/farmers_with_address.csv", index=False)

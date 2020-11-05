@@ -183,7 +183,7 @@ farmers_subset = farmers_with_sensors_df.head(50)
 
 start_date = '2017-04-01'
 end_date = '2017-10-01'
-save_path = "drive/My Drive/Kornmo/data"
+save_path = "data"
 
 # reference time in the FrostAPI
 ref_time = f'{start_date}/{end_date}'
