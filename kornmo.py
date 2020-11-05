@@ -7,7 +7,7 @@ class Kornmo:
 
     def get_deliveries(self):
         if self.deliveries is not None:
-            return self.deliveries
+            return self.deliveries.copy(deep=True)
 
         try:
             deliveries = pd.read_csv('data/leveransedata.csv')
@@ -24,5 +24,5 @@ class Kornmo:
         deliveries = deliveries[~duplicate_filter]
 
         self.deliveries = deliveries
-        return self.deliveries
+        return self.deliveries.copy(deep=True)
 
