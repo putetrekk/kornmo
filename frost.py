@@ -1,5 +1,5 @@
 import pandas as pd
-from utils import normalize
+from kornmo_utils import normalize
 
 
 class FrostDataset:
@@ -49,7 +49,7 @@ class FrostDataset:
             normalize(min_temp, -30, 30),
             normalize(max_temp, -30, 30),
             normalize(mean_temp, -30, 30),
-            # normalize(monthly_sum_temp),
+            # normalize(sum_temp, -30, 30),
             normalize(sum_rain, 0, 10),
         ], axis=1)
 
@@ -75,6 +75,7 @@ class FrostDataset:
         return growth_start_df['growth_start_day'].astype(int)
 
     def __load_from_files(self):
+        print(f'Loading weather data...')
         weather_2017 = pd.read_csv('data/2017-04-01_to_2017-10-01_weather.csv').dropna()
         weather_2018 = pd.read_csv('data/2018-04-01_to_2018-10-01_weather.csv').dropna()
 
@@ -82,3 +83,5 @@ class FrostDataset:
         weather_2018['year'] = 2018
 
         self.weather_data = pd.concat([weather_2017, weather_2018], ignore_index=True)
+
+        print(f'Weather data entries loaded: {len(self.weather_data)}')

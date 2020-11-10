@@ -1,21 +1,26 @@
 import pandas as pd
 from typing import List
-from utils import flatmap
+from kornmo_utils import flatmap
 
 
 class KornmoDataset:
     def __init__(self):
         self.deliveries: pd.DataFrame | None = None
 
-    def get_deliveries(self, crops=None):
+    def get_deliveries(self, crops=None, exclude_høsthvete=False) -> pd.DataFrame:
         if self.deliveries is not None:
             return self._filter_crops(crops).copy(deep=True)
+
+        print(f'Loading deliveries...')
 
         try:
             deliveries = pd.read_csv('data/leveransedata.csv')
         except FileNotFoundError:
             import get_farmer_delivery
             deliveries = pd.read_csv('data/leveransedata.csv')
+
+        if exclude_høsthvete:
+           deliveries = deliveries[lambda x: x['høsthvete_areal'] == 0]
 
         # Combine 'vårhvete' and 'høsthvete', and 'rug' and 'rughvete'
         deliveries['hvete_areal'] = deliveries['vårhvete_areal'] + deliveries['høsthvete_areal']
@@ -31,7 +36,7 @@ class KornmoDataset:
         deliveries.reset_index(drop=True, inplace=True)
 
         self.deliveries = deliveries
-
+        print(f'Number of deliveries loaded: {len(self.deliveries)}')
         return self._filter_crops(crops).copy(deep=True)
 
     def _filter_crops(self, crops: List[str]) -> pd.DataFrame:

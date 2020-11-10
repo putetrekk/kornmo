@@ -87,13 +87,5 @@ grants = pd.concat(per_year_grants, ignore_index=True)
 # Merge the two datasets above
 data = deliveries_summed.merge(grants)
 
-data = data[lambda df: (df.bygg_sum > 0) ^
-                       (df.erter_sum > 0) ^
-                       (df.havre_sum > 0) ^
-                       (df.hvete_sum > 0) ^
-                       (df.rug_sum > 0) ^
-                       (df.rughvete_sum > 0) ^
-                       (df.oljefro_sum > 0)]
-
 # Eksporter tabellen som csv
 data.to_csv("data/leveransedata.csv", index=False)

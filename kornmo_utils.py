@@ -71,6 +71,11 @@ def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None) -> DataFra
 
         # Remove entries where nothing has been produced
         crop_df = crop_df[lambda x: (x['levert'] > 0) & (x['areal'] > 0)]
+
+        crop_df['filter'] = crop_df['levert'] / crop_df['areal']
+        crop_df = filter_extremes(crop_df, 'filter')
+        crop_df.drop('filter', axis=1, inplace=True)
+
         crop_df.reset_index(drop=True, inplace=True)
 
         data = concat([data, crop_df], axis=0, ignore_index=True)
@@ -78,7 +83,7 @@ def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None) -> DataFra
     data.fillna(0, inplace=True)
 
     df_clean = df.drop(array(crop_columns).flatten(), axis=1)
-    return df_clean.merge(data)
+    return df_clean.merge(data, on=['year', 'orgnr'])
 
 
 def prepare_train_validation(df: DataFrame, y_col: Any, val_split: Number = 0.2):
@@ -89,9 +94,7 @@ def prepare_train_validation(df: DataFrame, y_col: Any, val_split: Number = 0.2)
     from sklearn.model_selection import train_test_split
     from sklearn.utils import shuffle
 
-    filtered_data = filter_extremes(df, y_col)
-
-    train, val = train_test_split(shuffle(filtered_data), test_size=val_split)
+    train, val = train_test_split(shuffle(df), test_size=val_split)
 
     train_x = train.drop(y_col, axis=1).to_numpy()
     train_y = train[y_col].to_numpy()
