@@ -103,3 +103,25 @@ def prepare_train_validation(df: DataFrame, y_col: Any, val_split: Number = 0.2)
     val_y = val[y_col].to_numpy()
 
     return train_x, train_y, val_x, val_y
+
+
+def add_noise(df: DataFrame, a=-1, b=1, method='add') -> DataFrame:
+    """
+    Add noise to all rows in a DataFrame
+    :param df: The DataFrame we want to add noise to
+    :param a: lower limit of random number that we'll use
+    :param b: upper limit of random number that we'll use
+    :param method: 'add' or 'mul'. The method used to add noise: add or multiply every value with a random value
+    :return: A new DataFrame with random numbers between 'a' and 'b' added to every row
+    """
+    import numpy as np
+
+    rand_vector = (b - a) * np.random.random_sample((len(df), len(df.columns))) + a
+    print(rand_vector)
+
+    if method == 'add':
+        return df.add(rand_vector, axis=0)
+    if method == 'mul':
+        return df.mul(rand_vector, axis=0)
+
+    raise AssertionError("Method must be either 'add' or 'mul'")
