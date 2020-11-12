@@ -10,25 +10,29 @@ def flatmap(f, xs):
     return ys
 
 
-def filter_extremes(df: DataFrame, column: Any) -> DataFrame:
+def filter_extremes(df: DataFrame, column: Any, lower: float = None, upper: float = None) -> DataFrame:
     """
     Removes values which are more than 2 standard deviations away from the mean.
     :param df: The DataFrame to filter .
     :param column: The column in the dataframe which is filtered on.
+    :param lower: All rows with a value below this is removed
+    :param upper: All rows with a value below this is removed
     :return: A new DataFrame with extreme values of the given column filtered out.
     """
 
     mean = df[column].mean()
     std = df[column].std()
-    lower = mean - 2 * std
-    upper = mean + 2 * std
+    if lower is None:
+        lower = mean - 2 * std
+    if upper is None:
+        upper = mean + 2 * std
 
     filtered_data = df[lambda x: (x[column] > lower) & (x[column] < upper)]
     filtered_data.reset_index(drop=True, inplace=True)
     return filtered_data
 
 
-def normalize(df, lower: int = None, upper: int = None) -> DataFrame:
+def normalize(df, lower: float = None, upper: float = None) -> DataFrame:
     """
     :param df: The DataFrame where all columns will be normalized.
     :param lower: if present, together with upper, this value will correspond to the normalized value of 0.
@@ -86,7 +90,7 @@ def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None) -> DataFra
     return df_clean.merge(data, on=['year', 'orgnr'])
 
 
-def prepare_train_validation(df: DataFrame, y_col: Any, val_split: Number = 0.2):
+def split_train_validation(df: DataFrame, val_split: Number = 0.2):
     """
     Split the data into training and validation
     """
@@ -95,6 +99,16 @@ def prepare_train_validation(df: DataFrame, y_col: Any, val_split: Number = 0.2)
     from sklearn.utils import shuffle
 
     train, val = train_test_split(shuffle(df), test_size=val_split)
+
+    return train, val
+
+
+def prepare_train_validation(df: DataFrame, y_col: Any, val_split: Number = 0.2):
+    """
+    Split the data into training and validation and prepare the data for the neural network
+    """
+
+    train, val = split_train_validation(df, val_split=val_split)
 
     train_x = train.drop(y_col, axis=1).to_numpy()
     train_y = train[y_col].to_numpy()
