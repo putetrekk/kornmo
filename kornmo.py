@@ -37,7 +37,7 @@ class KornmoDataset:
             deliveries = deliveries[lambda x: x['høsthvete_areal'] == 0]
 
         self.__load_grants()
-        data = deliveries.merge(self.grants)
+        data: pd.DataFrame = deliveries.merge(self.grants)
 
         # Combine 'vårhvete' and 'høsthvete', and 'rug' and 'rughvete'
         data['hvete_areal'] = data['vårhvete_areal'] + data['høsthvete_areal']
@@ -46,11 +46,23 @@ class KornmoDataset:
         # ... then remove the old values
         data.drop(['vårhvete_areal', 'høsthvete_areal', 'rug_sum', 'rughvete_sum'], axis=1, inplace=True)
 
-        # Remove farmers which have multiple entries for the same season.
-        # TODO: Consider merging entries instead
-        duplicate_filter = data.duplicated(subset=['year', 'orgnr'], keep=False)
-        data = data[~duplicate_filter]
-        data.reset_index(drop=True, inplace=True)
+        # Aggregate deliveries per farm per year
+        data = data.groupby(by=['orgnr', 'year'], as_index=False).agg({
+            'komnr': 'mean',
+            'bygg_sum': 'sum',
+            'erter_sum': 'sum',
+            'havre_sum': 'sum',
+            'hvete_sum': 'sum',
+            'oljefro_sum': 'sum',
+            'rug_og_rughvete_sum': 'sum',
+            'fulldyrket': 'mean',
+            'overflatedyrket': 'mean',
+            'tilskudd_dyr': 'mean',
+            'bygg_areal': 'mean',
+            'havre_areal': 'mean',
+            'rug_og_rughvete_areal': 'mean',
+            'hvete_areal': 'mean'
+        })
 
         return _filter_crops(data, crops)
 
