@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import List
+from typing import List, Dict
 from kornmo_utils import flatmap
 
 
@@ -71,9 +71,44 @@ class KornmoDataset:
         deliveries = self.deliveries.copy(deep=True)
 
         self.__load_legacy_grants()
-        data = deliveries.merge(self.legacy_grants)
+        data: pd.DataFrame = deliveries.merge(self.legacy_grants)
+
+        data['rug_og_rughvete_sum'] = data['rug_sum'] + data['rughvete_sum']
+        data.drop(['rug_sum', 'rughvete_sum'], axis=1, inplace=True)
+
+        # Aggregate deliveries per farm per year
+        data = data.groupby(by=['orgnr', 'year'], as_index=False).agg({
+            'komnr': 'mean',
+            'bygg_sum': 'sum',
+            'erter_sum': 'sum',
+            'havre_sum': 'sum',
+            'hvete_sum': 'sum',
+            'rug_og_rughvete_sum': 'sum',
+            'oljefro_sum': 'sum',
+            'areal_tilskudd': 'sum',
+            'husdyr_tilskudd': 'sum',
+        })
 
         return data
+
+    def get_historical_deliveries_by_year(self) -> Dict[int, pd.DataFrame]:
+        legacy = self.get_legacy_data().drop(columns=[
+            'komnr',
+            'areal_tilskudd',
+            'husdyr_tilskudd'
+        ])
+
+        columns_to_keep = [
+            'year',
+            'orgnr',
+            'bygg_sum',
+            'hvete_sum',
+            'havre_sum',
+            'rug_og_rughvete_sum'
+        ]
+        data = legacy.filter(items=columns_to_keep, axis=1)
+
+        return dict(list(data.groupby(by="year", as_index=True)))
 
     def __load_deliveries(self):
         if self.deliveries is not None:

@@ -10,13 +10,17 @@ kornmo = KornmoDataset()
 frost = FrostDataset()
 
 if __name__ == '__main__':
-    deliveries = kornmo.get_deliveries()\
+    data = kornmo.get_deliveries()\
         .pipe(ku.split_farmers_on_type)
-    weather_data = frost.get_as_aggregated(30)
-    data = deliveries.merge(weather_data, on=['year', 'orgnr'])
+
+    weather_data = frost.get_as_aggregated(7)
+    data = data.merge(weather_data, on=['year', 'orgnr'])
 
     elevation_data = get_farmer_elevation()
     data = data.merge(elevation_data, on=['orgnr'])
+
+    historical_data = ku.get_historical_production(kornmo, data.year.unique(), 4)
+    data = data.merge(historical_data, on=['orgnr', 'year'])
 
     data.dropna(inplace=True)
 
@@ -41,4 +45,3 @@ if __name__ == '__main__':
     model = train_simple_dense(train_x, train_y, val_x, val_y)
 
     plot(model, val_x, val_y)
-

@@ -1,5 +1,5 @@
 from numbers import Number
-from typing import Iterable, Any
+from typing import Iterable, Any, List
 from pandas import DataFrame
 
 
@@ -40,10 +40,51 @@ def normalize(df, lower: float = None, upper: float = None) -> DataFrame:
     :return: The new normalized DataFrame
     """
 
-    if lower is not None and lower == upper:
-        return (df - lower) / (upper - lower)
+    if lower is None:
+        lower = df.min()
+    if upper is None:
+        upper = df.max()
 
-    return (df - df.min()) / (df.max() - df.min())
+    return (df - lower) / (upper - lower)
+
+
+def get_historical_production(kornmo, years: List[int] = None, look_back_years: int = 4) -> DataFrame:
+    """
+    Creates a DataFrame with all farmers for each year in 'years' (default: 2017-2019),
+    with each farmers production numbers for previous years, looking back the number of years specified.
+    :param kornmo: An instance of a KornmoDataset
+    :param years: The dataframe will have one row for each of these years per farmer
+    :param look_back_years: Each row will contain this many years of production numbers
+    """
+
+    import pandas as pd
+    from functools import reduce
+
+    if years is None:
+        years = [2017, 2018, 2019]
+
+    deliveries_by_year = kornmo.get_historical_deliveries_by_year()
+
+    data = DataFrame()
+
+    for year in years:
+        dataframes = [df.copy() for y, df in deliveries_by_year.items() if year - look_back_years <= y < year]
+
+        for index, x in enumerate(dataframes):
+            x.drop('year', axis=1, inplace=True)
+            x.columns = ['orgnr', f'bygg_sum_{index}', f'hvete_sum_{index}',
+                         f'havre_sum_{index}', f'rug_og_rughvete_sum_{index}']
+
+        history_data = reduce(lambda left, right: pd.merge(left, right, on=['orgnr'], how='outer'), dataframes)
+
+        history_data.insert(0, 'year', year)
+
+        data = data.append(history_data, ignore_index=True)
+
+    data_index_cols = data.filter(items=['orgnr', 'year'], axis=1)
+    data_cols = data.filter(items=[col for col in data.columns if col not in ['orgnr', 'year']])
+
+    return data_index_cols.merge(normalize(data_cols.fillna(0), 0, 10000), left_index=True, right_index=True)
 
 
 def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None) -> DataFrame:
