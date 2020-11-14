@@ -30,7 +30,10 @@ def __plot_prediction_vs_y_1(df, ax):
 
     pred = pd.concat([lower_a, med_a, upper_a], axis=1)[::r_window].join(df['relative production'])
     sns.lineplot(data=pred[['prediction', 'relative production']], ax=ax[1])
-    sns.lineplot(data=df[['prediction', 'relative production']], ax=ax[0])
+
+    ax[0].plot(df['prediction'], 'o', markersize=1, label="prediction")
+    ax[0].plot(df['relative production'], '--', label='relative production')
+    ax[0].legend()
 
 
 def __plot_prediction_vs_y_2(df, ax):
@@ -48,4 +51,7 @@ def __plot_prediction_vs_y_2(df, ax):
 
     pred = df[['prediction']].join(pd.concat([lower_a, med_a, upper_a], axis=1))[::r_window]
     sns.lineplot(data=pred[['relative production', 'prediction']], ax=ax[1])
-    sns.lineplot(data=df[['relative production', 'prediction']], ax=ax[0])
+
+    ax[0].plot(df['relative production'], 'o', markersize=1, label='relative production')
+    ax[0].plot(df['prediction'], '--', label="prediction")
+    ax[0].legend()
