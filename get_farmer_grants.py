@@ -36,7 +36,7 @@ def get_grants_data(url):
 
 
 per_year_grants = [
-    # get_grants_data("http://hotell.difi.no/download/ldir/produksjon-og-avlosertilskudd/2019?download"),
+    get_grants_data("http://hotell.difi.no/download/ldir/produksjon-og-avlosertilskudd/2019?download"),
     get_grants_data("http://hotell.difi.no/download/ldir/produksjon-og-avlosertilskudd/2018?download"),
     get_grants_data("http://hotell.difi.no/download/ldir/produksjon-og-avlosertilskudd/2017?download"),
 ]

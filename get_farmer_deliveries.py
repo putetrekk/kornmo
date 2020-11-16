@@ -7,11 +7,21 @@ def get_deliveries(year, url):
     deliveries.insert(0, 'year', year)
     deliveries.orgnr = deliveries.orgnr.astype(int)
 
-    # 2013-2015 uses a different name for bygg_saakorn_kg, let's fix that!
-    return deliveries.rename(columns={"bygg_sakorn_kg": "bygg_saakorn_kg"})
+    # 2013-2015 / 2019 uses a different name for saakorn.
+    standardized_grain_names = {
+        "bygg_sakorn_kg": "bygg_saakorn_kg",
+        "havre_sakorn_kg": "havre_saakorn_kg",
+        "erter_sakorn_kg": "erter_saakorn_kg",
+        "hvete_sakorn_kg": "hvete_saakorn_kg",
+        "rug_sakorn_kg": "rug_saakorn_kg",
+        "rughvete_sakorn_kg": "rughvete_saakorn_kg",
+        "oljefro_sakorn_kg": "oljefro_saakorn_kg"
+    }
+    return deliveries.rename(columns=standardized_grain_names)
 
 
 per_year_deliveries = [
+    get_deliveries(2019, "http://hotell.difi.no/download/ldir/leveransedata-korn/2019-2020?download"),
     get_deliveries(2018, "http://hotell.difi.no/download/ldir/leveransedata-korn/2018-2019?download"),
     get_deliveries(2017, "http://hotell.difi.no/download/ldir/leveransedata-korn/2017-2018?download"),
     get_deliveries(2016, "http://hotell.difi.no/download/ldir/leveransedata-korn/2016-2017?download"),
