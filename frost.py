@@ -20,9 +20,9 @@ class FrostDataset:
         if self.weather_data is not None:
             return self.weather_data.copy(deep=True)
 
-    def get_as_aggregated(self, grouping_duration=7):
+    def get_as_aggregated(self, grouping_duration=7, years: List[int] = None):
         if self.weather_data is None:
-            self.__load_from_files()
+            self.__load_from_files(years)
 
         def group_columns(columns, n):
             return [columns[x:x + n] for x in range(0, len(columns), n)]
