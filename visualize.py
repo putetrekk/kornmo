@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 def plot(model, data_x, data_y):
     predictions = model.predict(data_x)
-    df = pd.DataFrame({'relative production': data_y, 'prediction': predictions.flatten()})
+    df = pd.DataFrame({'relative production': data_y.flatten(), 'prediction': predictions.flatten()})
 
     fig, (ax1, ax2) = plt.subplots(2, 2, figsize=(12, 12), squeeze=True)
     __plot_prediction_vs_y_1(df, ax1)
