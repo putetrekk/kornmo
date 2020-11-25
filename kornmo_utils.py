@@ -1,7 +1,10 @@
 from numbers import Number
 from typing import Iterable, Any, List
 from pandas import DataFrame
+from sklearn import preprocessing
 
+import pandas as pd
+import numpy as np
 
 def flatmap(f, xs):
     ys = []
@@ -46,6 +49,53 @@ def normalize(df, lower: float = None, upper: float = None) -> DataFrame:
         upper = df.max()
 
     return (df - lower) / (upper - lower)
+
+
+def normalize_by_key(df, col_key):
+    if col_key in df:
+        df[col_key] = preprocessing.MinMaxScaler().fit_transform(df[[col_key]])
+    else:
+        print(f'Could not find {col_key} in DataFrame')
+    return df
+
+
+def normalize_by_key_and_values(df, col_key, min_val, max_val):
+    if col_key in df:
+        df[col_key] = (df[col_key] - min_val) / (max_val - min_val)
+    else:
+        print(f'Could not find {col_key} in DataFrame')
+    return df
+
+
+def standardize_column_by_key(df, col_key):
+    if col_key in df:
+        df[col_key] = preprocessing.StandardScaler().fit_transform(df[[col_key]])
+    else:
+        print(f'Could not find {col_key} in DataFrame')
+    return df
+
+
+def normalize_by_keys(df, col_keys: List[str]):
+    for key in col_keys:
+        df = normalize_by_key(df, key)
+    return df
+
+
+def scale_weather_features(data_df):
+    df = data_df.copy()
+    min_temperature_columns = [key for key in df.filter(regex="min_temp").keys()]
+    max_temperature_columns = [key for key in df.filter(regex="max_temp").keys()]
+    sum_temperature_columns = [key for key in df.filter(regex="mean_temp").keys()]
+    all_temperature_columns = min_temperature_columns + max_temperature_columns + sum_temperature_columns
+
+    rain_columns = [key for key in df.filter(regex="total_rain").keys()]
+
+    for key in all_temperature_columns:
+        normalize_by_key_and_values(df, key, -30, 30)
+    for key in rain_columns:
+        normalize_by_key(df, key)
+
+    return df
 
 
 def get_historical_production(kornmo, years: List[int] = None, look_back_years: int = 4) -> DataFrame:
@@ -180,3 +230,48 @@ def add_noise(df: DataFrame, a=-1, b=1, method='add') -> DataFrame:
         return df.mul(rand_vector, axis=0)
 
     raise AssertionError("Method must be either 'add' or 'mul'")
+
+
+def sum_and_one_hot_grain(df: DataFrame) -> DataFrame:
+    """
+    Sums all gratins into column 'levert'
+    Since we do not know how much area is used by each grain type, one hot them.
+    """
+    only_grain_farmers = df.copy()
+    only_grain_farmers = only_grain_farmers.drop(columns=['erter_sum', 'oljefro_sum'])
+    only_grain_farmers['levert'] = only_grain_farmers.filter(regex="_sum").sum(axis=1)
+
+    grain_colums = only_grain_farmers.filter(regex="_sum").keys()
+
+    for grain_column in grain_colums:
+        only_grain_farmers[grain_column] = only_grain_farmers[grain_column].apply(lambda x: 1 if x > 0 else 0)
+
+    rename_cols = {}
+    for key in grain_colums:
+        rename_cols[key] = key.split('_sum')[0]
+
+    only_grain_farmers = only_grain_farmers.rename(columns=rename_cols)
+    return only_grain_farmers
+
+
+def one_hot_column(data_df: DataFrame, col_key: str):
+    df = data_df.copy()
+    df[col_key] = pd.Categorical(df[col_key])
+    dfDummies = pd.get_dummies(df[col_key], prefix=col_key)
+    df = pd.concat([df, dfDummies], axis=1)
+
+    return df
+
+
+def merge_with_elevation_data(df_to_merge):
+    df = df_to_merge.copy()
+    elevation_data = pd.read_csv('data/farmer_elevation.csv').dropna()
+    elevation_data = elevation_data[['orgnr', 'lat', 'elevation']]
+    return df.merge(elevation_data, on=['orgnr'])
+
+
+def get_levert_per_tilskudd(data_df: pd.DataFrame):
+    df = data_df.copy()
+    df['levert_per_tilskudd'] = df['levert'] / df['areal_tilskudd']
+    df = df.replace([np.inf, -np.inf], np.nan).dropna()
+    return df
