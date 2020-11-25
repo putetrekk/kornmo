@@ -4,7 +4,6 @@ from pandas import DataFrame
 from sklearn import preprocessing
 
 import pandas as pd
-import numpy as np
 
 def flatmap(f, xs):
     ys = []
@@ -78,23 +77,6 @@ def standardize_column_by_key(df, col_key):
 def normalize_by_keys(df, col_keys: List[str]):
     for key in col_keys:
         df = normalize_by_key(df, key)
-    return df
-
-
-def scale_weather_features(data_df):
-    df = data_df.copy()
-    min_temperature_columns = [key for key in df.filter(regex="min_temp").keys()]
-    max_temperature_columns = [key for key in df.filter(regex="max_temp").keys()]
-    sum_temperature_columns = [key for key in df.filter(regex="mean_temp").keys()]
-    all_temperature_columns = min_temperature_columns + max_temperature_columns + sum_temperature_columns
-
-    rain_columns = [key for key in df.filter(regex="total_rain").keys()]
-
-    for key in all_temperature_columns:
-        normalize_by_key_and_values(df, key, -30, 30)
-    for key in rain_columns:
-        normalize_by_key(df, key)
-
     return df
 
 
@@ -270,8 +252,3 @@ def merge_with_elevation_data(df_to_merge):
     return df.merge(elevation_data, on=['orgnr'])
 
 
-def get_levert_per_tilskudd(data_df: pd.DataFrame):
-    df = data_df.copy()
-    df['levert_per_tilskudd'] = df['levert'] / df['areal_tilskudd']
-    df = df.replace([np.inf, -np.inf], np.nan).dropna()
-    return df
