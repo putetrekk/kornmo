@@ -19,7 +19,7 @@ class FrostDataset:
         if self.weather_data is not None:
             return self.weather_data.copy(deep=True)
 
-    def get_as_aggregated(self, grouping_duration=7, years: List[int] = None):
+    def get_as_aggregated(self, grouping_duration=7, years: List[int] = None, normalize_data=True):
         if self.weather_data is None:
             self.__load_from_files(years)
 
@@ -48,17 +48,26 @@ class FrostDataset:
         sum_rain = aggregate_cols(self.weather_data, 'precipitation_day_[0-9]+', lambda df: df.sum(axis=1)) \
             .add_prefix("total_rain")
 
-        aggregated_data = pd.concat([
-            self.weather_data[['year', 'orgnr']],
-            normalize(self.find_growth_start()),
-            normalize(min_temp, -30, 30),
-            normalize(max_temp, -30, 30),
-            normalize(mean_temp, -30, 30),
-            # normalize(sum_temp, -30, 30),
-            normalize(sum_rain, 0, 10),
-        ], axis=1)
+        if normalize_data:
+            return pd.concat([
+                self.weather_data[['year', 'orgnr']],
+                normalize(self.find_growth_start()),
+                normalize(min_temp, -30, 30),
+                normalize(max_temp, -30, 30),
+                normalize(mean_temp, -30, 30),
+                # normalize(sum_temp, -30, 30),
+                normalize(sum_rain, 0, 10),
+            ], axis=1)
 
-        return aggregated_data
+        return pd.concat([
+            self.weather_data[['year', 'orgnr']],
+            self.find_growth_start(),
+            min_temp,
+            max_temp,
+            mean_temp,
+            # normalize(sum_temp, -30, 30),
+            sum_rain,
+        ], axis=1)
 
     def find_growth_start(self):
         def is_above_threshold(list_of_temperatures):

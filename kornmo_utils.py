@@ -119,11 +119,12 @@ def get_historical_production(kornmo, years: List[int] = None, look_back_years: 
     return data_index_cols.merge(normalize(data_cols.fillna(0), 0, 10000), left_index=True, right_index=True)
 
 
-def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None) -> DataFrame:
+def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None, remove_outliers=True) -> DataFrame:
     """
     Split farmers into entries for each type of crop they have grown.
     :param df: The DataFrame which contain all the farmer entries with columns for each crop type.
     :param types: The crop types we'll use to create new entries, defaults to: ['bygg', 'havre', 'hvete', 'rug_og_rughvete'].
+    :param remove_outliers: Whether to remove outliers in the dataset for each crop type
     :return: A new DataFrame where every entry is split up into entries for each crop type.
     """
 
@@ -146,16 +147,20 @@ def split_farmers_on_type(df: DataFrame, types: Iterable[str] = None) -> DataFra
         # Set type
         crop_df[crop_type] = 1
 
-        # Remove entries where nothing has been produced
-        crop_df = crop_df[lambda x: (x['levert'] > 0) & (x['areal'] > 0)]
+        if remove_outliers:
+            # Remove entries where nothing has been produced
+            crop_df = crop_df[lambda x: (x['levert'] > 0) & (x['areal'] > 0)]
 
-        crop_df['filter'] = crop_df['levert'] / crop_df['areal']
-        crop_df = filter_extremes(crop_df, 'filter')
-        crop_df.drop('filter', axis=1, inplace=True)
+            crop_df['filter'] = crop_df['levert'] / crop_df['areal']
+            crop_df = filter_extremes(crop_df, 'filter')
+            crop_df.drop('filter', axis=1, inplace=True)
 
-        crop_df.reset_index(drop=True, inplace=True)
+            crop_df.reset_index(drop=True, inplace=True)
+            data = concat([data, crop_df], axis=0, ignore_index=True)
 
-        data = concat([data, crop_df], axis=0, ignore_index=True)
+        else:
+            crop_df.reset_index(drop=True, inplace=True)
+            data = concat([data, crop_df], axis=0, ignore_index=True)
 
     data.fillna(0, inplace=True)
 

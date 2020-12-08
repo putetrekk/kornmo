@@ -10,7 +10,7 @@ def plot(model, data_x, data_y):
     predictions = model.predict(data_x)
     df = pd.DataFrame({'relative production': data_y.flatten(), 'prediction': predictions.flatten()})
 
-    fig, (ax1, ax2) = plt.subplots(2, 2, figsize=(12, 12), squeeze=True)
+    fig, (ax1, ax2) = plt.subplots(2, 2, figsize=(8, 8), squeeze=True)
     __plot_prediction_vs_y_1(df, ax1)
     __plot_prediction_vs_y_2(df, ax2)
 
@@ -18,8 +18,8 @@ def plot(model, data_x, data_y):
 
 
 def __plot_prediction_vs_y_1(df, ax):
-    ax[0].title.set_text('Farmers ordered by their relative production')
-    ax[1].title.set_text('Farmers ordered by their relative production')
+    ax[0].title.set_text('Farmers ordered by relative production')
+    ax[1].title.set_text('Farmers ordered by relative production')
 
     df = df.sort_values(by='relative production', ignore_index=True)
 
