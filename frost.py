@@ -14,8 +14,7 @@ class FrostDataset:
         try:
             self.__load_from_files()
         except FileNotFoundError:
-            import get_weather
-            self.__load_from_files()
+            print("Download the weather files!")
 
         if self.weather_data is not None:
             return self.weather_data.copy(deep=True)
