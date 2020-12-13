@@ -8,14 +8,14 @@ def train_simple_dense(train_x, train_y, val_x, val_y):
 
 
     model = Sequential()
-    model.add(Dense(units=64, activation="tanh", input_dim=len(train_x[0])))
+    model.add(Dense(units=256, activation="tanh", input_dim=len(train_x[0])))
     model.add(Dropout(0.1))
-    model.add(Dense(units=256, activation="tanh"))
+    model.add(Dense(units=64, activation="tanh"))
     model.add(Dropout(0.25))
-    model.add(Dense(units=256, activation="tanh"))
+    model.add(Dense(units=64, activation="tanh"))
     model.add(Dense(units=1))
 
-    model.compile(loss='mean_squared_error', optimizer=tf.keras.optimizers.Adam(0.0001))
+    model.compile(loss='mean_absolute_error', optimizer=tf.keras.optimizers.Adam(0.0001))
     model.summary()
 
     #model.load_weights("testweights")

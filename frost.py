@@ -20,7 +20,7 @@ class FrostDataset:
             return self.weather_data.copy(deep=True)
 
     def get_as_aggregated(self, grouping_duration=7, years: List[int] = None, normalize_data=True):
-        if self.weather_data is None:
+        if self.weather_data is None or list(self.weather_data.year.unique()) != years:
             self.__load_from_files(years)
 
         def group_columns(columns, n):
@@ -31,6 +31,7 @@ class FrostDataset:
 
             # grouping_duration of 1 day basically means we don't need to aggregate any further
             if grouping_duration == 1:
+                col_subset.columns = range(0, len(col_subset.columns))
                 return col_subset
 
             grouped_cols = group_columns(col_subset.columns, grouping_duration)

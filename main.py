@@ -14,7 +14,7 @@ if __name__ == '__main__':
     data = kornmo.get_deliveries()\
         .pipe(ku.split_farmers_on_type)
 
-    weather_data = frost.get_as_aggregated(7)
+    weather_data = frost.get_as_aggregated(1)
     data = data.merge(weather_data, on=['year', 'orgnr'])
 
     elevation_data = get_farmer_elevation()
