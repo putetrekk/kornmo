@@ -18,8 +18,8 @@ def plot(model, data_x, data_y):
 
 
 def __plot_prediction_vs_y_1(df, ax):
-    ax[0].title.set_text('Farmers ordered by relative production')
-    ax[1].title.set_text('Farmers ordered by relative production')
+    ax[0].title.set_text('Ordered by relative production (kg per grant)')
+    ax[1].title.set_text('Ordered by relative production (kg per grant)')
 
     df = df.sort_values(by='relative production', ignore_index=True)
 
@@ -67,6 +67,25 @@ def change_grown_type(farmer_dataframe, all_combos):
     return farmer_dataframe
 
 
+translate_types = {
+    'bygg': 'barley',
+    'havre': 'oats',
+    'hvete': 'wheat',
+    'rug_og_rughvete': 'rye and ryewheat'
+}
+
+
+def translate_grain_types(grain_types):
+    translated_grain_types = []
+
+    for grain_type in grain_types:
+        try:
+            translated_grain_types.append(translate_types[grain_type])
+        except KeyError:
+            translated_grain_types.append(grain_type)
+    return translated_grain_types
+
+
 def generate_alternative_outcomes(data_df, model, y_column, remove_from_training, area_type, generate_limit=5):
     farmers = data_df.reset_index(drop=True).head(generate_limit)
     test_cases = []
@@ -83,7 +102,7 @@ def generate_alternative_outcomes(data_df, model, y_column, remove_from_training
         current_dict[grain_types[i]] = 1
         all_combos.append(current_dict)
 
-    for index, row in farmers.head(20).iterrows():
+    for index, row in farmers.iterrows():
         planted_grains = []
         for grain_type in grain_types:
             if (row[grain_type]):
@@ -110,6 +129,7 @@ def generate_alternative_outcomes(data_df, model, y_column, remove_from_training
 
 
         labels = grain_types + [planted]
+        labels = translate_grain_types(labels)
         x_pos = [i for i, _ in enumerate(labels)]
         plot_data = pred.flatten().tolist()
         # Add the Actual performance of the farmer
@@ -119,8 +139,8 @@ def generate_alternative_outcomes(data_df, model, y_column, remove_from_training
                 color=[(0.2, 0.4, 0.6, 0.6), (0.2, 0.4, 0.6, 0.6), (0.2, 0.4, 0.6, 0.6), (0.2, 0.4, 0.6, 0.6), 'green'])
 
         plt.xlabel("Type")
-        plt.ylabel(f"KG levert per {area_type}")
-        plt.title(f"orgnr prediction {farmer['orgnr']}  levert per  {area_type}")
+        plt.ylabel(f"Normalized kg delivered/ {area_type}")
+        plt.title(f"Prediction vs Actual")
         plt.xticks(x_pos, labels)
         plt.savefig(make_image_path(f'areal_{farmer["orgnr"]}'), format='png')
         plt.show()

@@ -8,15 +8,11 @@ from visualize import plot, generate_alternative_outcomes
 import numpy as np
 import pandas as pd
 
-
-import tensorflow as tf
-physical_devices = tf.config.list_physical_devices('GPU')
-tf.config.experimental.set_memory_growth(physical_devices[0], True)
 def get_levert_per_tilskudd(data_df: pd.DataFrame):
-    df = data_df.copy()
-    df['levert_per_tilskudd'] = df['levert'] / df['areal_tilskudd']
-    df = df.replace([np.inf, -np.inf], np.nan).dropna()
-    return df
+	df = data_df.copy()
+	df['levert_per_tilskudd'] = df['levert'] / df['areal_tilskudd']
+	df = df.replace([np.inf, -np.inf], np.nan).dropna()
+	return df
 
 
 if __name__ == '__main__':
@@ -24,16 +20,13 @@ if __name__ == '__main__':
 	frost = FrostDataset()
 
 	data = kornmo.get_legacy_data().pipe(ku.sum_and_one_hot_grain)
-
-	weather_data = frost.get_as_aggregated(7, [2013, 2014, 2015, 2016, 2017, 2018, 2019])
+	weather_data = frost.get_as_aggregated(1, [2013, 2014, 2015, 2016, 2017, 2018, 2019])
 	data = data.merge(weather_data, on=['year', 'orgnr'])
 
 	normalize_cols = ['areal_tilskudd', 'levert_per_tilskudd', 'levert', 'lat', 'elevation', 'growth_start_day']
 	data = data\
 		.pipe(ku.merge_with_elevation_data)\
 		.pipe(get_levert_per_tilskudd)\
-		.pipe(ku.filter_extremes, 'levert')\
-		.pipe(ku.filter_extremes, 'areal_tilskudd')\
 		.pipe(ku.filter_extremes, 'levert_per_tilskudd')\
 		.pipe(ku.normalize_by_keys, normalize_cols)\
 		.pipe(ku.one_hot_column, 'komnr')\
@@ -54,6 +47,6 @@ if __name__ == '__main__':
 
 	model = train_simple_dense(train_x, train_y, val_x, val_y)
 
-	area_type = "tilskudd"
+	area_type = "areal grant"
 	plot(model, val_x, val_y)
-	generate_alternative_outcomes(test, model, y_column, remove_from_training, area_type)
+	generate_alternative_outcomes(test, model, y_column, remove_from_training, area_type, 20)
