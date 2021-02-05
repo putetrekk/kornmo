@@ -6,7 +6,7 @@ from matplotlib.tri import Triangulation, LinearTriInterpolator
 def get_interpolated_values() -> pandas.Series:
     return pandas.Series()
 
-weather = pandas.read_csv("data/temperature_2019-04-01-2019-10-01.csv")
+weather = pandas.read_csv("../data/temperature_2019-04-01-2019-10-01.csv")
 
 farmers = weather[['orgnr', 'lng_farmer', 'lat_farmer']]
 

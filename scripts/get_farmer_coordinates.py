@@ -27,7 +27,7 @@ GEOCODING_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
 if __name__ == '__main__':
     farms = []
 
-    df = pandas.read_csv('data/farmers_with_address.csv')
+    df = pandas.read_csv('../data/farmers_with_address.csv')
 
     for row in df.itertuples():
         create_farm(row[1], row[7])
