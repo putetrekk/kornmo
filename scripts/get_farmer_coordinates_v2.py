@@ -7,7 +7,7 @@ import urllib.parse
 GEOCODING_API_URL = 'https://api.mapbox.com/geocoding/v5/mapbox.places/'
 
 if __name__ == '__main__':
-    df = pandas.read_csv('data/farmers_with_address.csv', index_col='orgnr')
+    df = pandas.read_csv('../data/farmers_with_address.csv', index_col='orgnr')
     df['lat'] = ''
     df['lng'] = ''
 

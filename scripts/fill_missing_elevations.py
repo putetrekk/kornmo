@@ -2,7 +2,7 @@ import pandas
 import requests
 
 if __name__ == '__main__':
-    df = pandas.read_csv('data/farmer_elevation.csv')
+    df = pandas.read_csv('../data/farmer_elevation.csv')
     elevations_by_commune = df.groupby('commune_id').median()
     elevations_by_commune: pandas.DataFrame = elevations_by_commune['elevation']
 

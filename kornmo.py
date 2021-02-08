@@ -123,7 +123,7 @@ class KornmoDataset:
         try:
             self.deliveries = pd.read_csv('data/landbruksdir/raw/farmer_deliveries.csv')
         except FileNotFoundError:
-            from get_farmer_deliveries import data as deliveries
+            from scripts.get_farmer_deliveries import data as deliveries
             self.deliveries = deliveries
         print(f'Number of deliveries loaded: {len(self.deliveries)}')
 
@@ -134,7 +134,7 @@ class KornmoDataset:
         try:
             self.grants = pd.read_csv('data/landbruksdir/raw/farmer_grants.csv')
         except FileNotFoundError:
-            from get_farmer_grants import data as grants
+            from scripts.get_farmer_grants import data as grants
             self.grants = grants
 
     def __load_legacy_grants(self):
@@ -145,6 +145,6 @@ class KornmoDataset:
         try:
             self.legacy_grants = pd.read_csv('data/landbruksdir/raw/legacy_grants.csv')
         except FileNotFoundError:
-            from get_legacy_grants import data as legacy_grants
+            from scripts.get_legacy_grants import data as legacy_grants
             self.legacy_grants = legacy_grants
         print(f'Historical data loaded for years {self.legacy_grants.year.min()} to {self.legacy_grants.year.max()}.')
