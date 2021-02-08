@@ -27,6 +27,9 @@ def plot_image(image, factor=1.0, clip_range = None, **kwargs):
     """
     _, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
     
+    if factor == 'auto':
+        factor = 1 / np.percentile(image, 99)
+
     if clip_range is not None:
         ax.imshow(np.clip(image * factor, *clip_range), **kwargs)
     else:
@@ -54,10 +57,12 @@ def plot_image_grid(images, ncols, nrows, factor=1.0, clip_range = None, **kwarg
         else:
             ax = axs[idx // ncols][idx % ncols]
         
+        img_factor = 1 / np.percentile(image, 99) if factor == 'auto' else factor
+        
         if clip_range is not None:
-            ax.imshow(np.clip(image * factor, *clip_range), **kwargs)
+            ax.imshow(np.clip(image * img_factor, *clip_range), **kwargs)
         else:
-            ax.imshow(image * factor, **kwargs)
+            ax.imshow(image * img_factor, **kwargs)
 
     plt.tight_layout()
 
