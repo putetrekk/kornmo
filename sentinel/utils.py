@@ -28,9 +28,9 @@ def plot_image(image, factor=1.0, clip_range = None, **kwargs):
     _, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 10))
     
     if clip_range is not None:
-        ax.imshow(np.clip(image * factor/255, *clip_range), **kwargs)
+        ax.imshow(np.clip(image * factor, *clip_range), **kwargs)
     else:
-        ax.imshow(image * factor/255, **kwargs)
+        ax.imshow(image * factor, **kwargs)
     
     ax.set_xticks([])
     ax.set_yticks([])
@@ -55,9 +55,9 @@ def plot_image_grid(images, ncols, nrows, factor=1.0, clip_range = None, **kwarg
             ax = axs[idx // ncols][idx % ncols]
         
         if clip_range is not None:
-            ax.imshow(np.clip(image * factor/255, *clip_range), **kwargs)
+            ax.imshow(np.clip(image * factor, *clip_range), **kwargs)
         else:
-            ax.imshow(image * factor/255, **kwargs)
+            ax.imshow(image * factor, **kwargs)
 
     plt.tight_layout()
 

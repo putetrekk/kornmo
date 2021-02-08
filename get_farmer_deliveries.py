@@ -53,4 +53,4 @@ for sum_column, columns in sum_cols.items():
 data = deliveries_summed
 
 # Export to csv
-data.to_csv("data/farmer_deliveries.csv", index=False)
+data.to_csv("data/landbruksdir/raw/farmer_deliveries.csv", index=False)

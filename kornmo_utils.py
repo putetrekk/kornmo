@@ -1,6 +1,7 @@
 from numbers import Number
 from typing import Iterable, Any, List
 from pandas import DataFrame
+import pandas as pd
 from sklearn import preprocessing
 
 import pandas as pd
@@ -257,3 +258,17 @@ def merge_with_elevation_data(df_to_merge):
     return df.merge(elevation_data, on=['orgnr'])
 
 
+def convert_to_new_gaardsnr(df: DataFrame, komnr_col, gaardsnr_col, bruksnr_col, festenr_col):
+    mapper = pd.read_csv("data/geonorge/nye_gaards_og_bruksnummer.csv")
+
+    old_cols = ['old_kommunenr','old_gaardsnummer','old_bruksnummer','old_festenummer']
+    new_cols = ['new_kommunenr','new_gaardsnummer','new_bruksnummer','new_festenummer']
+
+    original_cols = [komnr_col, gaardsnr_col, bruksnr_col, festenr_col]
+
+    return mapper.merge(
+        df,
+        left_on=old_cols,
+        right_on=original_cols)\
+      .drop(columns=old_cols + original_cols)\
+      .rename(columns={ new: original_cols[i] for i, new in enumerate(new_cols) })

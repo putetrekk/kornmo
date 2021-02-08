@@ -17,7 +17,7 @@ def _filter_crops(deliveries: pd.DataFrame, crops: List[str]) -> pd.DataFrame:
 
     crop_cols_to_keep = flatmap(lambda x: (f'{x}_sum', f'{x}_areal'), crops)
 
-    cols_to_drop = set(all_crop_cols) - set(crop_cols_to_keep)
+    cols_to_drop = list(set(all_crop_cols) - set(crop_cols_to_keep))
 
     return deliveries \
         .drop(columns=cols_to_drop)
@@ -31,8 +31,8 @@ class KornmoDataset:
 
     def get_deliveries(self, crops=None, exclude_høsthvete=False) -> pd.DataFrame:
         self.__load_deliveries()
+        deliveries = self.deliveries.drop(columns=['komnr'])
 
-        deliveries = self.deliveries.copy(deep=True)
         if exclude_høsthvete:
             deliveries = deliveries[lambda x: x['høsthvete_areal'] == 0]
 
@@ -45,10 +45,13 @@ class KornmoDataset:
 
         # ... then remove the old values
         data.drop(['vårhvete_areal', 'høsthvete_areal', 'rug_sum', 'rughvete_sum'], axis=1, inplace=True)
-
+        
         # Aggregate deliveries per farm per year
-        data = data.groupby(by=['orgnr', 'year'], as_index=False).agg({
-            'komnr': 'mean',
+        data = data.groupby(by=["year", "orgnr"], as_index=False).agg({
+            'kommunenr': 'first', 
+            'gaardsnummer': 'first', 
+            'bruksnummer': 'first',
+            'festenummer': 'first',
             'bygg_sum': 'sum',
             'erter_sum': 'sum',
             'havre_sum': 'sum',
@@ -68,7 +71,9 @@ class KornmoDataset:
 
     def get_legacy_data(self) -> pd.DataFrame:
         self.__load_deliveries()
-        deliveries = self.deliveries.copy(deep=True)
+        deliveries = self.deliveries\
+            .copy(deep=True)\
+            .drop(columns=['komnr'])
 
         self.__load_legacy_grants()
         data: pd.DataFrame = deliveries.merge(self.legacy_grants)
@@ -116,7 +121,7 @@ class KornmoDataset:
 
         print(f'Loading deliveries...')
         try:
-            self.deliveries = pd.read_csv('data/farmer_deliveries.csv')
+            self.deliveries = pd.read_csv('data/landbruksdir/raw/farmer_deliveries.csv')
         except FileNotFoundError:
             from get_farmer_deliveries import data as deliveries
             self.deliveries = deliveries
@@ -127,7 +132,7 @@ class KornmoDataset:
             return
 
         try:
-            self.grants = pd.read_csv('data/farmer_grants.csv')
+            self.grants = pd.read_csv('data/landbruksdir/raw/farmer_grants.csv')
         except FileNotFoundError:
             from get_farmer_grants import data as grants
             self.grants = grants
@@ -138,7 +143,7 @@ class KornmoDataset:
 
         print(f'Loading historical grants data...')
         try:
-            self.legacy_grants = pd.read_csv('data/legacy_grants.csv')
+            self.legacy_grants = pd.read_csv('data/landbruksdir/raw/legacy_grants.csv')
         except FileNotFoundError:
             from get_legacy_grants import data as legacy_grants
             self.legacy_grants = legacy_grants

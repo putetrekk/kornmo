@@ -38,7 +38,7 @@ if __name__ == '__main__':
     data['elevation'] = ku.normalize(data['elevation'])
 
     y_column = ['y']
-    remove_from_training = ['orgnr', 'komnr', 'year'] + y_column
+    remove_from_training = ['orgnr', 'kommunenr', 'gaardsnummer', 'bruksnummer', 'festenummer', 'year'] + y_column
 
     train, val = train_test_split(shuffle(data), test_size=0.2)
     val, test = train_test_split(val, test_size=0.2)

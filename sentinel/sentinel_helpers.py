@@ -1,6 +1,7 @@
-from sentinelhub import SHConfig, MimeType, CRS, BBox, SentinelHubRequest, SentinelHubDownloadClient, \
-    DataCollection, bbox_to_dimensions
-from .sentinel_evalscripts import true_color
+from sentinelhub import SHConfig, MimeType, CRS, BBox, SentinelHubRequest, SentinelHubDownloadClient,\
+    DataCollection, bbox_to_dimensions, geometry
+from sentinel.sentinel_evalscripts import true_color
+from shapely.geometry import Polygon
 import datetime
 
 
@@ -19,7 +20,7 @@ if CLIENT_ID and CLIENT_SECRET:
 if config.sh_client_id == '' or config.sh_client_secret == '':
     print("Warning! To use Sentinel Hub services, please provide the credentials (client ID and client secret).")
 
-def download_images_in_range(bbox, resolution, start, end, num, evalscript=true_color, maxcc=None, size=None):
+def create_slots(start, end, num):
     slots = []
     start = datetime.datetime(*start)
     end = datetime.datetime(*end)
@@ -28,15 +29,41 @@ def download_images_in_range(bbox, resolution, start, end, num, evalscript=true_
     tdelta = (end - start) / (n_chunks-1)
     edges = [(start + i*tdelta).date().isoformat() for i in range(n_chunks)]
     slots.extend([(edges[i], edges[i+1]) for i in range(len(edges)-1)])
+    
+    return slots
 
-    return download_image_series(bbox, resolution, slots, evalscript, maxcc, size)
-
-
-def download_image_series(bbox, resolution, slots, evalscript=true_color, maxcc=None, size=None):
+def download_timeseries_from_bbox(bbox, start, end, num, evalscript=true_color, maxcc=None, size=None, resolution=None):
+    slots = create_slots(start, end, num)
     bbox = BBox(bbox=bbox, crs=CRS.WGS84)
-    if size is None:
-        size = bbox_to_dimensions(bbox, resolution=resolution)
 
+    if size and resolution:
+        print("Both size and resolution parameters can't be used together. Using size.")
+
+    if resolution and size is None:
+        size = bbox_to_dimensions(bbox, resolution)
+     
+    return download_image_series(slots, evalscript, maxcc=maxcc, size=size, bbox=bbox)
+
+
+def download_timeseries_from_polygon(polygon: Polygon, start, end, num, evalscript=true_color, maxcc=None, size=None, resolution=None):
+    slots = create_slots(start, end, num)
+    
+    if size and resolution:
+        print("Both size and resolution parameters can't be used together. Using size.")
+
+    if resolution and size is None:
+        bbox = polygon.exterior.bounds
+        size = bbox_to_dimensions(BBox(bbox, CRS.WGS84), resolution)
+
+    polygon = geometry.Geometry(polygon, CRS.WGS84)
+    return download_image_series(slots, evalscript, maxcc=maxcc, size=size, polygon=polygon)
+
+
+def download_image_series(slots, evalscript=true_color, maxcc=None, size=None, bbox=None, polygon=None):
+    if polygon is None and bbox is None:
+        print("Both bbox and polygon can't be None.")
+        return
+    
     def create_request(time_interval):
         return SentinelHubRequest(
             evalscript=evalscript,
@@ -51,6 +78,7 @@ def download_image_series(bbox, resolution, slots, evalscript=true_color, maxcc=
             responses=[
                 SentinelHubRequest.output_response('default', MimeType.TIFF)
             ],
+            geometry=polygon,
             bbox=bbox,
             size=size,
             config=config,

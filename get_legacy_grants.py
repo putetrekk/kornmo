@@ -54,4 +54,4 @@ legacy_grants = [
 data = pd.concat(legacy_grants, ignore_index=True)
 
 # Export to csv
-data.to_csv("data/legacy_grants.csv", index=False)
+data.to_csv("data/landbruksdir/raw/legacy_grants.csv", index=False)

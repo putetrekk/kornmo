@@ -17,7 +17,7 @@ column_2017_animal_grants_mapper = {
 
 
 def get_grants_data(url):
-    columns = ['soeknads_aar', 'orgnr', 'fulldyrket', 'overflatedyrket', 'tilskudd_dyr'] + list(column_mapper.keys())
+    columns = ['soeknads_aar', 'orgnr', 'kommunenr', 'gaardsnummer', 'bruksnummer', 'festenummer', 'fulldyrket', 'overflatedyrket', 'tilskudd_dyr'] + list(column_mapper.keys())
 
     tilskudd = pd.read_csv(
         url,
@@ -44,4 +44,4 @@ per_year_grants = [
 data = pd.concat(per_year_grants, ignore_index=True)
 
 # Export to csv
-data.to_csv("data/farmer_grants.csv", index=False)
+data.to_csv("data/landbruksdir/raw/farmer_grants.csv", index=False)

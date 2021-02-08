@@ -1,53 +1,88 @@
-import numpy as np
 import h5py
-
-'''
-When storing images it is much more efficient to store integer values instead of floats,
-however, values must be mapped from 0...1 to real numbers to store any valuable data,
-using this value as a multiplier.
-'''
-int_scale = 255
-
-filename = "data/images_raw.h5"
+import numpy as np
+import random
 
 
-def store_images(images, farmer_id, year, scale=int_scale):
-    # Convert image values to integer type
-    data = (np.array(images)*scale).astype(int)
+class SentinelDataset:
+    FILE = "data/sentinelhub/images_raw.h5"
 
-    file = h5py.File(filename, "a")
-    try:
-        # Delete existing images (if they exist)
-        if f"images/{farmer_id}/{year}" in file:
-            del file[f"images/{farmer_id}/{year}"]
+    '''
+    When storing images it is much more efficient to store integer values instead of floats,
+    however, values must be mapped from 0...1 to real numbers to store any valuable data,
+    using this value as a multiplier.
+    '''
+    INT_SCALE = 255
+
+    def __init__(self):
+        self.labels = self.__load_labels()
+
+    def __load_labels(self):
+        labels = []
+        def visit_func(name, object):
+            if not isinstance(object, h5py.Dataset):
+                return
+            labels.append(name)
+
+        with h5py.File(self.FILE, "r+") as file:
+            file.visititems(visit_func)
+        return labels
+
+    def get_image_samples(self, num=10):
+        if num > len(self.labels):
+            num = len(self.labels)
         
-        file.create_dataset(
-            name=f"images/{farmer_id}/{year}",
-            data=data,
-            compression="gzip",
-            compression_opts=2,
-        )
-    finally:
-        file.close()
+        sample_labels = random.sample(self.labels, num)
+        
+        samples = np.zeros(shape=(num, 3), dtype=object)
+        idx = 0
+        with h5py.File(self.FILE, "r+") as file:
+            for label in sample_labels:
+                images = file[label][()] / self.INT_SCALE
+                orgnr, year = self.__extract_orgnr_year(label)
+                samples[idx] = (orgnr, year, images)
+                idx += 1
+        
+        return samples
 
-def get_images(farmer_id, year, scale=int_scale):
-    if not h5py.is_hdf5(filename):
-        return False
+    def get_images(self, orgnr, year):
+        label = f"images/{orgnr}/{year}"
+        if label in self.labels:
+            with h5py.File(self.FILE, "r+") as file:
+                return file[label][()] / self.INT_SCALE
+
+    def del_images(self, orgnr, year):
+        label = f"images/{orgnr}/{year}"
+        if label in self.labels:
+            with h5py.File(self.FILE, "r+") as file:
+                del file[label]
+                self.labels.remove(label)
+                print(f"Deleted image dataset '{label}'.")
+        else:
+            print(f"Image dataset '{label}' is already deleted.")
     
-    file = h5py.File(filename, "r+")
-    try:
-        if f"images/{farmer_id}/{year}" in file:
-            dset = file[f"images/{farmer_id}/{year}"]
-            return np.array(dset) / scale
-    finally:
-        file.close()
+    def store_images(self, images, farmer_id, year):
+        # Convert image values to integer type
+        data = (np.array(images) * self.INT_SCALE).astype(int)
 
-def if_exists(farmer_id, year):
-    if not h5py.is_hdf5(filename):
-        return False
+        with h5py.File(self.FILE, "a") as file:
+            label = f"images/{farmer_id}/{year}"
+            # Delete existing images (if they exist)
+            if label in file:
+                del file[f"images/{farmer_id}/{year}"]
+            else:
+                self.labels.append(label)
+            
+            file.create_dataset(
+                name=f"images/{farmer_id}/{year}",
+                data=data,
+                compression="gzip",
+                compression_opts=2,
+            )
 
-    file = h5py.File(filename, "r+")
-    try:
-        return f"images/{farmer_id}/{year}" in file
-    finally:
-        file.close()
+    def contains(self, farmer_id, year):
+        return f"images/{farmer_id}/{year}" in self.labels
+
+    @staticmethod
+    def __extract_orgnr_year(label):
+        parts = label.split("/")
+        return parts[1], parts[2]
