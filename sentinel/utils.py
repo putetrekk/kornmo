@@ -5,6 +5,21 @@ import math
 
 true_color = lambda x: [x[3], x[2], x[1]]
 
+ndvi = lambda B: (B[7] - B[3]) / (B[7] + B[3])
+
+L = 0.6
+savi = lambda B: (B[7] - B[3]) / (B[7] + B[3] + L) * (1.0 + L)
+
+infrared_agriculture = lambda B: [B[3], B[7], B[1]]
+
+false_color_infrared = lambda B: [B[7], B[3], B[2]]
+
+def highlight_optimized_natural_color(B):
+    g = 0.6
+    B = [B[3] * g, B[2] * g, B[1] * g]
+    return [B[0]**(1/3) - 0.035, B[1]**(1/3) - 0.035, B[2]**(1/3) - 0.035]
+
+
 def to_rgb(img, map_func=true_color):
     '''
     Apply a mapping function to convert a multiband image into rgb components.

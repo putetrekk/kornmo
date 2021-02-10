@@ -1,11 +1,10 @@
 import h5py
 import numpy as np
 import random
+import os
 
 
 class SentinelDataset:
-    FILE = "data/sentinelhub/images_raw.h5"
-
     '''
     When storing images it is much more efficient to store integer values instead of floats,
     however, values must be mapped from 0...1 to real numbers to store any valuable data,
@@ -13,17 +12,22 @@ class SentinelDataset:
     '''
     INT_SCALE = 255
 
-    def __init__(self):
+    def __init__(self, file: str):
+        self.filename = file
         self.labels = self.__load_labels()
 
     def __load_labels(self):
+        if not os.path.exists(self.filename):
+            with h5py.File(self.filename, "a") as file:
+                file.create_group("images")
+
         labels = []
         def visit_func(name, object):
             if not isinstance(object, h5py.Dataset):
                 return
             labels.append(name)
 
-        with h5py.File(self.FILE, "r+") as file:
+        with h5py.File(self.filename, "r+") as file:
             file.visititems(visit_func)
         return labels
 
@@ -35,7 +39,7 @@ class SentinelDataset:
         
         samples = np.zeros(shape=(num, 3), dtype=object)
         idx = 0
-        with h5py.File(self.FILE, "r+") as file:
+        with h5py.File(self.filename, "r+") as file:
             for label in sample_labels:
                 images = file[label][()] / self.INT_SCALE
                 orgnr, year = self.__extract_orgnr_year(label)
@@ -47,13 +51,13 @@ class SentinelDataset:
     def get_images(self, orgnr, year):
         label = f"images/{orgnr}/{year}"
         if label in self.labels:
-            with h5py.File(self.FILE, "r+") as file:
+            with h5py.File(self.filename, "r+") as file:
                 return file[label][()] / self.INT_SCALE
 
     def del_images(self, orgnr, year):
         label = f"images/{orgnr}/{year}"
         if label in self.labels:
-            with h5py.File(self.FILE, "r+") as file:
+            with h5py.File(self.filename, "r+") as file:
                 del file[label]
                 self.labels.remove(label)
                 print(f"Deleted image dataset '{label}'.")
@@ -64,7 +68,7 @@ class SentinelDataset:
         # Convert image values to integer type
         data = (np.array(images) * self.INT_SCALE).astype(int)
 
-        with h5py.File(self.FILE, "a") as file:
+        with h5py.File(self.filename, "a") as file:
             label = f"images/{farmer_id}/{year}"
             # Delete existing images (if they exist)
             if label in file:
