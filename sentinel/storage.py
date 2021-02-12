@@ -2,6 +2,8 @@ import h5py
 import numpy as np
 import random
 import os
+import copy
+from typing import List
 
 
 class SentinelDataset:
@@ -15,6 +17,31 @@ class SentinelDataset:
     def __init__(self, file: str):
         self.filename = file
         self.labels = self.__load_labels()
+    
+    def get_iterator(self, shuffle=False):
+        labels = copy.copy(self.labels)
+        if shuffle:
+            random.shuffle(labels)
+
+        image_factory = lambda orgnr, year: self.get_images(orgnr, year)
+
+        return SentinelDatasetIterator(image_factory, labels)
+
+    def get_iterators(self, val_split=0.2, shuffle=True):
+        labels = copy.copy(self.labels)
+        if shuffle:
+            random.shuffle(labels)
+
+        num = len(self.labels)
+        split = int(val_split * num)
+        train_labels = labels[split:]
+        val_labels = labels[:split]
+
+        image_factory = lambda orgnr, year: self.get_images(orgnr, year)
+        
+        training_iterator = SentinelDatasetIterator(image_factory, train_labels)
+        validation_iterator = SentinelDatasetIterator(image_factory, val_labels)
+        return training_iterator, validation_iterator
 
     def __load_labels(self):
         if not os.path.exists(self.filename):
@@ -90,3 +117,32 @@ class SentinelDataset:
     def __extract_orgnr_year(label):
         parts = label.split("/")
         return parts[1], parts[2]
+
+
+class SentinelDatasetIterator:
+    def __init__(self, get_images, labels: List[str]):
+        self.get_images = get_images
+        self.labels = labels
+        self.n = len(labels)
+
+    def __iter__(self):
+        i = 0
+        while i < self.n:
+            orgnr, year = self.labels[i].split("/")[1:3]
+            yield orgnr, year, self.get_images(orgnr, year)
+            i += 1
+    
+    def __getitem__(self, key):
+        # If key is a slice, eg. [0:10], we return a new iterator over the sequence
+        if isinstance(key, slice):
+            labels_slice = self.labels[key]
+            it = SentinelDatasetIterator(self.get_images, labels_slice)
+            return it
+        
+        # It's just an index
+        elif isinstance(key, int):
+            orgnr, year = self.labels[key].split("/")[1:3]
+            return orgnr, year, self.get_images(orgnr, year)
+        
+        else:
+            raise TypeError(f"Indices must be integers or slices, not {type(key)}")
