@@ -6,20 +6,21 @@ from matplotlib.tri import Triangulation, LinearTriInterpolator
 def get_interpolated_values() -> pandas.Series:
     return pandas.Series()
 
-weather = pandas.read_csv("../data/temperature_2019-04-01-2019-10-01.csv")
+temperatures = pandas.read_csv("../data/frost/temperature_processed_2019-03-01_to_2019-10-01.csv")
+sensors = pandas.read_csv("../data/frost/frost_sources.csv", index_col="id")[['lng', 'lat']]
 
-farmers = weather[['orgnr', 'lng_farmer', 'lat_farmer']]
+temperatures = temperatures.join(sensors, "station_id")
 
-weather_stations = weather.groupby(by='weather_station_id', as_index=False)
-weather_stations = weather_stations.agg('median')
+farmers = pandas.read_csv("../data/temperature_2019-04-01-2019-10-01.csv")[['orgnr', 'lng_farmer', 'lat_farmer']]
+
 #weather_stations = weather_stations[['sensor_lng', 'sensor_lat', 'day_0_mean']]
 #for col in weather_stations.columns:
 #    print(col)
 
-for i in range(183):
-    knownPointsPerDay = np.zeros([weather.shape[0], 3])
-    for index, station in weather_stations.iterrows():
-        knownPointsPerDay[index] = np.array([station.sensor_lng, station.sensor_lat, station[f'day_{i}_mean']])
+for i in range(214):
+    knownPointsPerDay = np.zeros([temperatures.shape[0], 3])
+    for index, station in temperatures.iterrows():
+        knownPointsPerDay[index] = np.array([station.lng, station.lat, station[f'day_{i}_mean']])
 
     # triangulation function
     triFn = Triangulation(knownPointsPerDay[:, 0], knownPointsPerDay[:, 1])
