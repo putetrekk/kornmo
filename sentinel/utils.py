@@ -130,3 +130,11 @@ def boundingBox(latitudeInDegrees, longitudeInDegrees, halfSideInKm):
     lng_max = lng + halfSide/pradius
 
     return (rad2deg(lng_min), rad2deg(lat_min),rad2deg(lng_max), rad2deg(lat_max))
+
+
+def is_notebook():
+    try:
+        __IPYTHON__
+        return True
+    except NameError:
+        return False

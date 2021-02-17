@@ -23,9 +23,7 @@ class SentinelDataset:
         if shuffle:
             random.shuffle(labels)
 
-        image_factory = lambda orgnr, year: self.get_images(orgnr, year)
-
-        return SentinelDatasetIterator(image_factory, labels)
+        return SentinelDatasetIterator(self, labels)
 
     def get_iterators(self, val_split=0.2, shuffle=True):
         labels = copy.copy(self.labels)
@@ -36,11 +34,9 @@ class SentinelDataset:
         split = int(val_split * num)
         train_labels = labels[split:]
         val_labels = labels[:split]
-
-        image_factory = lambda orgnr, year: self.get_images(orgnr, year)
         
-        training_iterator = SentinelDatasetIterator(image_factory, train_labels)
-        validation_iterator = SentinelDatasetIterator(image_factory, val_labels)
+        training_iterator = SentinelDatasetIterator(self, train_labels)
+        validation_iterator = SentinelDatasetIterator(self, val_labels)
         return training_iterator, validation_iterator
 
     def __load_labels(self):
@@ -50,30 +46,13 @@ class SentinelDataset:
 
         labels = []
         def visit_func(name, object):
-            if not isinstance(object, h5py.Dataset):
+            if not name.startswith("images") or not isinstance(object, h5py.Dataset):
                 return
             labels.append(name)
 
         with h5py.File(self.filename, "r+") as file:
             file.visititems(visit_func)
         return labels
-
-    def get_image_samples(self, num=10):
-        if num > len(self.labels):
-            num = len(self.labels)
-        
-        sample_labels = random.sample(self.labels, num)
-        
-        samples = np.zeros(shape=(num, 3), dtype=object)
-        idx = 0
-        with h5py.File(self.filename, "r+") as file:
-            for label in sample_labels:
-                images = file[label][()] / self.INT_SCALE
-                orgnr, year = self.__extract_orgnr_year(label)
-                samples[idx] = (orgnr, year, images)
-                idx += 1
-        
-        return samples
 
     def get_images(self, orgnr, year):
         label = f"images/{orgnr}/{year}"
@@ -91,7 +70,7 @@ class SentinelDataset:
         else:
             print(f"Image dataset '{label}' is already deleted.")
     
-    def store_images(self, images, farmer_id, year):
+    def store_images(self, images, farmer_id, year, compression:int=2):
         # Convert image values to integer type
         data = (np.array(images) * self.INT_SCALE).astype(int)
 
@@ -103,15 +82,27 @@ class SentinelDataset:
             else:
                 self.labels.append(label)
             
-            file.create_dataset(
-                name=f"images/{farmer_id}/{year}",
-                data=data,
-                compression="gzip",
-                compression_opts=2,
-            )
+            c_args = {}
+            if compression > 0:
+                c_args = {'compression': 'gzip', 'compression_opts': compression}
+            
+            file.create_dataset(name=f"images/{farmer_id}/{year}", data=data, **c_args)
 
     def contains(self, farmer_id, year):
         return f"images/{farmer_id}/{year}" in self.labels
+    
+    def copy_to(self, output_file: str, compression:int=0):
+        from tqdm import tqdm
+        
+        c_args = {}
+        if compression > 0:
+            c_args = {'compression': 'gzip', 'compression_opts': compression}
+
+        with h5py.File(output_file, "a") as out_file:
+            with h5py.File(self.filename, "r+") as file:
+                for label in tqdm(self.labels):
+                    data = file[label][()]
+                    out_file.create_dataset(name=label, data=data, **c_args)
 
     @staticmethod
     def __extract_orgnr_year(label):
@@ -120,29 +111,32 @@ class SentinelDataset:
 
 
 class SentinelDatasetIterator:
-    def __init__(self, get_images, labels: List[str]):
-        self.get_images = get_images
+    def __init__(self, dataset: SentinelDataset, labels: List[str]):
+        self.dataset = dataset
+        self.filename = dataset.filename
         self.labels = labels
         self.n = len(labels)
 
     def __iter__(self):
-        i = 0
-        while i < self.n:
-            orgnr, year = self.labels[i].split("/")[1:3]
-            yield orgnr, year, self.get_images(orgnr, year)
-            i += 1
+        with h5py.File(self.filename, "r+") as file:
+            i = 0
+            while i < self.n:
+                orgnr, year = self.labels[i].split("/")[1:3]
+                img_array:np.ndarray = file[f"images/{orgnr}/{year}"][()]
+                yield orgnr, year, img_array / SentinelDataset.INT_SCALE
+                i += 1
     
     def __getitem__(self, key):
         # If key is a slice, eg. [0:10], we return a new iterator over the sequence
         if isinstance(key, slice):
             labels_slice = self.labels[key]
-            it = SentinelDatasetIterator(self.get_images, labels_slice)
+            it = SentinelDatasetIterator(self.dataset, labels_slice)
             return it
         
         # It's just an index
         elif isinstance(key, int):
             orgnr, year = self.labels[key].split("/")[1:3]
-            return orgnr, year, self.get_images(orgnr, year)
+            return orgnr, year, self.dataset.get_images(orgnr, year)
         
         else:
             raise TypeError(f"Indices must be integers or slices, not {type(key)}")
