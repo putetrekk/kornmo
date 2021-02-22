@@ -110,6 +110,15 @@ class SentinelDataset:
         return parts[1], parts[2]
 
 
+class SentinelImageSeriesSource:
+    def __init__(self, dataset: h5py.Dataset) -> None:
+        self.image_dataset = dataset
+
+    def __getitem__(self, key):
+        images:np.ndarray = self.image_dataset[key]
+        return images / SentinelDataset.INT_SCALE
+        
+
 class SentinelDatasetIterator:
     def __init__(self, dataset: SentinelDataset, labels: List[str]):
         self.dataset = dataset
@@ -117,13 +126,16 @@ class SentinelDatasetIterator:
         self.labels = labels
         self.n = len(labels)
 
+    def __len__(self):
+        return self.n
+
     def __iter__(self):
         with h5py.File(self.filename, "r+") as file:
             i = 0
             while i < self.n:
                 orgnr, year = self.labels[i].split("/")[1:3]
-                img_array:np.ndarray = file[f"images/{orgnr}/{year}"][()]
-                yield orgnr, year, img_array / SentinelDataset.INT_SCALE
+                img_dataset:h5py.Dataset = file[f"images/{orgnr}/{year}"]
+                yield orgnr, year, SentinelImageSeriesSource(img_dataset)
                 i += 1
     
     def __getitem__(self, key):
