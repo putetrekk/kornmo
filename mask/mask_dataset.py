@@ -16,7 +16,7 @@ class MaskDataset:
         if shuffle:
             random.shuffle(labels)
 
-        mask_factory = lambda orgnr, year: self.get_masks(orgnr, year)
+        mask_factory = lambda orgnr, year: self.get_mask(orgnr, year)
 
         return MaskDatasetIterator(mask_factory, labels)
 
@@ -37,13 +37,13 @@ class MaskDataset:
         return labels
 
     def get_mask(self, orgnr, year):
-        label = f"matrikkels/{orgnr}/{year}"
+        label = f"masks/{orgnr}/{year}"
         if label in self.labels:
             with h5py.File(self.filename, "r+") as file:
                 return file[label][()]
 
     def del_masks(self, orgnr, year):
-        label = f"matrikkels/{orgnr}/{year}"
+        label = f"masks/{orgnr}/{year}"
         if label in self.labels:
             with h5py.File(self.filename, "r+") as file:
                 del file[label]
@@ -54,22 +54,22 @@ class MaskDataset:
 
     def store_masks(self, mask, farmer_id, year):
         with h5py.File(self.filename, "a") as file:
-            label = f"matrikkels/{farmer_id}/{year}"
+            label = f"masks/{farmer_id}/{year}"
             # Delete existing masks (if they exist)
             if label in file:
-                del file[f"matrikkels/{farmer_id}/{year}"]
+                del file[f"masks/{farmer_id}/{year}"]
             else:
                 self.labels.append(label)
 
             file.create_dataset(
-                name=f"matrikkels/{farmer_id}/{year}",
+                name=f"masks/{farmer_id}/{year}",
                 data=mask,
                 compression="gzip",
                 compression_opts=2,
             )
 
     def contains(self, farmer_id, year):
-        return f"matrikkels/{farmer_id}/{year}" in self.labels
+        return f"masks/{farmer_id}/{year}" in self.labels
 
     @staticmethod
     def __extract_orgnr_year(label):
