@@ -58,6 +58,35 @@ def generate_mask_image(bbox, gaard):
     return mask_img
 
 
+def generate_mask_from_fields(bbox, fields_df):
+    y_max = 100
+    x_max = 100
+    mask_img = Image.new('1', (x_max, y_max), 0)
+    bounds = bbox.geometry
+    geo_translator = GeoPointTranslator(bounds)
+
+    shapes = []
+
+    for index, field in fields_df.iterrows():
+        if field.geometry.geom_type == 'Polygon':
+            shapes.append(field.geometry.exterior.coords[:])
+        else:
+            # Multipolygon, handle each shape separately.
+            [shapes.append(polygon.exterior.coords[:]) for polygon in field.geometry]
+
+
+    for shape in shapes:
+        field_polygon = []
+        for point in shape:
+            xy = geo_translator.lat_lng_to_screen_xy(point[1], point[0])
+            x = xy['x']
+            y = xy['y']
+            field_polygon.append((x, y_max - y))
+        ImageDraw.Draw(mask_img).polygon(field_polygon, outline=1, fill=1)
+
+    return mask_img
+
+
 def get_sentinel_shapes(bb_path, farms_path):
     matrikkel_shp_gpd = gpd.read_file(bb_path)
     matrikkel_file_df = pd.DataFrame(matrikkel_shp_gpd)
