@@ -6,27 +6,21 @@ from PIL import Image, ImageDraw
 
 
 def add_mask_as_channel(mask, image_series):
-    imgs_w_mask_channel = np.zeros((30, 100, 100, 13))
-    for idx, img in enumerate(image_series):
-        imgs_w_mask_channel[idx] = np.concatenate((img, mask[:, :, np.newaxis]), axis=2)
-    return imgs_w_mask_channel
+    n_imgs = image_series.shape[0]
+    
+    # Reshape and duplicate the mask for each image
+    mask = np.tile(mask.reshape(100, 100, 1), (n_imgs, 1, 1, 1))
+
+    # Add the mask as the last channel in each image
+    return np.concatenate((image_series, mask), axis=3)
 
 
 def apply_mask_to_image_series(mask, image_series):
-    imgs_w_mask = np.zeros((30, 100, 100, 12))
-    for idx, img in enumerate(image_series):
-        imgs_w_mask[idx] = apply_mask_to_image(mask, img)
-    return imgs_w_mask
+    return image_series * mask.reshape(1, 100, 100, 1)
 
 
 def apply_mask_to_image(mask, image):
-    channels = image.shape[2]
-    new_img_array = np.empty(image.shape, dtype='float32')
-    new_img_array[:, :, :channels] = image[:, :, :channels]
-    for i in range(0, channels):
-        new_img_array[:, :, i] = new_img_array[:, :, i] * mask
-
-    return new_img_array
+    return image * mask.reshape(100, 100, 1)
 
 
 def generate_mask_image(bbox, gaard):
