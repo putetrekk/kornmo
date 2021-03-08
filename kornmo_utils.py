@@ -51,6 +51,18 @@ def normalize(df, lower: float = None, upper: float = None) -> DataFrame:
     return (df - lower) / (upper - lower)
 
 
+def denormalize(df, lower: float, upper: float) -> DataFrame:
+    """
+    Denormalizes DataFrame
+    :param df: The DataFrame where all columns will be denormalized.
+    :param lower: The denormalized value of 0
+    :param upper: The denormalized value of 1
+    :return: The denormalized DataFrame
+    """
+
+    return df * (upper - lower) + lower
+
+
 def normalize_by_key(df, col_key):
     if col_key in df:
         df[col_key] = preprocessing.MinMaxScaler().fit_transform(df[[col_key]])
