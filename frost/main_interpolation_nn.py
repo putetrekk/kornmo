@@ -6,6 +6,8 @@ import utils
 import matplotlib.pyplot as plt
 import kornmo_utils as ku
 
+normalization_upper = 100
+
 
 def get_k_closest(sensors: pd.DataFrame, lat, lng, k: int):
     sensors['distance'] = sensors.apply(
@@ -31,7 +33,7 @@ def get_weather_dataset() -> pd.DataFrame:
     try:
         return pd.read_csv('numbers.csv', index_col='index')
     except IOError:
-        print("no existing numbers.npy file found, will create, hold on tight!")
+        print("no existing numbers.csv file found, will create, hold on tight!")
 
     frost_sources = pd.read_csv('../data/frost/frost_sources.csv', index_col=['id'])
 
@@ -81,7 +83,7 @@ def train_interpolation(train_x, train_y, val_x, val_y):
     model.compile(loss='mean_absolute_error', optimizer=tf.keras.optimizers.Adam(0.0001))
     model.summary()
 
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100, min_delta=0.0001)
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=25, min_delta=0)
     history = model.fit(
         train_x, train_y,
         validation_data=(val_x, val_y),
@@ -105,6 +107,10 @@ def plot(model, data_x, data_y):
     predictions = model.predict(data_x)
     df = pd.DataFrame({'actual': data_y.flatten(), 'prediction': predictions.flatten()})
 
+    df = ku.denormalize(df, 0, normalization_upper)
+    df['abs_error'] = abs(df['prediction'] - df['actual'])
+    print(f"Denormalized MAE: {df['abs_error'].mean()}")
+
     plt.title('Ordered by actual precipitation')
 
     df = df.sort_values(by='actual', ignore_index=True)
@@ -123,8 +129,8 @@ if __name__ == '__main__':
         data[f'{i}_lat_diff'] = ku.normalize(data[f'{i}_lat_diff'])
         data[f'{i}_lng_diff'] = ku.normalize(data[f'{i}_lng_diff'])
         data[f'{i}_masl_diff'] = ku.normalize(data[f'{i}_masl_diff'])
-        data[f'{i}_value'] = ku.normalize(data[f'{i}_value'])
-    data['station_x_actual'] = ku.normalize(data['station_x_actual'])
+        data[f'{i}_value'] = ku.normalize(data[f'{i}_value'], 0, normalization_upper)
+    data['station_x_actual'] = ku.normalize(data['station_x_actual'], 0, normalization_upper)
 
     y_column = ['y']
 
