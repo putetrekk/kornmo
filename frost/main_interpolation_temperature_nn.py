@@ -1,10 +1,10 @@
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-import utils
-import matplotlib.pyplot as plt
 import kornmo_utils as ku
+import utils
 
 normalization_lower = -30
 normalization_upper = 30
@@ -55,7 +55,7 @@ def get_weather_dataset() -> pd.DataFrame:
             print(f'day {day}, {year}')
             for station_id, station in new_sensors.iterrows():
                 day_sensors = new_sensors[["lat", "lng", "masl", f"day_{day}_min", f"day_{day}_mean", f"day_{day}_max"]]
-                day_sensors = day_sensors\
+                day_sensors = day_sensors \
                     .rename(columns={f"day_{day}_min": "min_val"}) \
                     .rename(columns={f"day_{day}_mean": "mean_val"}) \
                     .rename(columns={f"day_{day}_max": "max_val"}) \
@@ -81,7 +81,7 @@ def train_interpolation(train_x, train_y, val_x, val_y):
     import matplotlib.pyplot as plt
     import tensorflow as tf
     from tensorflow.keras.models import Model
-    from tensorflow.keras.layers import Dense, Dropout, Input, LeakyReLU, ReLU
+    from tensorflow.keras.layers import Dense, Input
 
     input_layer = Input(shape=(len(train_x[0])), name="rudolf")
     model_x = Dense(512, activation="relu")(input_layer)
@@ -124,6 +124,9 @@ def train_interpolation(train_x, train_y, val_x, val_y):
 
 def plot(model, data_x, data_y):
     predictions = model.predict(data_x)
+
+    plt.title('Ordered by actual temperature')
+
     df = pd.DataFrame({
         'actual_min': data_y[0].flatten(),
         'prediction_min': predictions[0].flatten(),
@@ -131,27 +134,20 @@ def plot(model, data_x, data_y):
         'prediction_mean': predictions[1].flatten(),
         'actual_max': data_y[2].flatten(),
         'prediction_max': predictions[2].flatten()
-        }
-    )
+    })
 
     df = ku.denormalize(df, normalization_lower, normalization_upper)
-    df['abs_error_min'] = abs(df['prediction_min'] - df['actual_min'])
-    df['abs_error_mean'] = abs(df['prediction_mean'] - df['actual_mean'])
-    df['abs_error_max'] = abs(df['prediction_max'] - df['actual_max'])
-    print(f"Denormalized min MAE: {df['abs_error_min'].mean()}")
-    print(f"Denormalized mean MAE: {df['abs_error_mean'].mean()}")
-    print(f"Denormalized max MAE: {df['abs_error_max'].mean()}")
 
-    plt.title('Ordered by actual temperature')
+    for thing in ['min', 'mean', 'max']:
+        df[f'abs_error_{thing}'] = abs(df[f'prediction_{thing}'] - df[f'actual_{thing}'])
+        print(f"Denormalized {thing} MAE: {df[f'abs_error_{thing}'].mean()}")
 
-    for thing in ['mean', 'min', 'max']:
         df = df.sort_values(by=f'actual_{thing}', ignore_index=True)
 
-        plt.plot(df[f'prediction_{thing}'], 'o', markersize=1, alpha=0.02, label=f"prediction {thing}", antialiased=True)
+        plt.plot(df[f'prediction_{thing}'], 'o', markersize=1, alpha=0.02, label=f"prediction {thing}", aa=False)
         plt.plot(df[f'actual_{thing}'], '--', label=f'actual temperature {thing}')
 
-        plt.legend()
-
+    plt.legend(loc="lower right")
     plt.ylim(-30, 40)
     plt.show()
 
