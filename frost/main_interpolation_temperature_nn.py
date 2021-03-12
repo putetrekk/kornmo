@@ -147,7 +147,7 @@ def plot(model, data_x, data_y):
     for thing in ['mean', 'min', 'max']:
         df = df.sort_values(by=f'actual_{thing}', ignore_index=True)
 
-        plt.plot(df[f'prediction_{thing}'], 'o', markersize=3, label=f"prediction {thing}", edgecolors='grey', antialiased=False)
+        plt.plot(df[f'prediction_{thing}'], 'o', markersize=1, alpha=0.02, label=f"prediction {thing}", antialiased=True)
         plt.plot(df[f'actual_{thing}'], '--', label=f'actual temperature {thing}')
 
         plt.legend()
@@ -156,7 +156,15 @@ def plot(model, data_x, data_y):
     plt.show()
 
 
+class NearestNeighbourModel:
+    @staticmethod
+    def predict(data_x):
+        return data_x[:, 5:2:-1].T
+
+
 if __name__ == '__main__':
+    from tensorflow.keras.models import load_model
+
     data = get_weather_dataset().dropna()
 
     for i in range(3):
@@ -178,6 +186,11 @@ if __name__ == '__main__':
     val_x = val.drop(y_columns, axis=1).to_numpy()
     val_y = val[y_columns].to_numpy().T
 
-    model = train_interpolation(train_x, train_y, val_x, val_y)
+    # model = train_interpolation(train_x, train_y, val_x, val_y)
+    model = load_model('temperature_model.h5')
 
     plot(model, val_x, val_y)
+
+    nearest_model = NearestNeighbourModel()
+
+    plot(nearest_model, val_x, val_y)
