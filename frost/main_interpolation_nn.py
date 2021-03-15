@@ -74,16 +74,17 @@ def train_interpolation(train_x, train_y, val_x, val_y):
 
     model = Sequential()
     model.add(Dense(units=512, activation="relu", input_dim=len(train_x[0])))
-    model.add(Dropout(0.05))
+    model.add(Dropout(0.2))
+    model.add(Dense(units=512, activation="relu"))
+    model.add(Dropout(0.1))
     model.add(Dense(units=128, activation="relu"))
-    model.add(Dropout(0.025))
     model.add(Dense(units=32, activation="relu"))
     model.add(Dense(units=1))
 
-    model.compile(loss='mean_absolute_error', optimizer=tf.keras.optimizers.Adam(0.0001))
+    model.compile(loss='mean_absolute_error', optimizer=tf.keras.optimizers.Adam(0.001))
     model.summary()
 
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=25, min_delta=0)
+    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=50, min_delta=0)
     history = model.fit(
         train_x, train_y,
         validation_data=(val_x, val_y),
@@ -115,20 +116,26 @@ def plot(model, data_x, data_y):
 
     df = df.sort_values(by='actual', ignore_index=True)
 
-    plt.plot(df['prediction'], 'o', markersize=1, label="prediction", alpha=0.02, antialiased=False)
+    plt.plot(df['prediction'], 'o', markersize=1, label="prediction", alpha=0.05, antialiased=False)
     plt.plot(df['actual'], '--', label='actual precipitation')
-    plt.legend()
+    plt.legend(loc='upper left')
+
+    plt.ylim(-1, 40)
 
     plt.show()
+
+
+class NearestNeighbourModel:
+    @staticmethod
+    def predict(data_x):
+        return data_x[:, 3]
 
 
 if __name__ == '__main__':
     data = get_weather_dataset()
 
     for i in range(3):
-        data[f'{i}_lat_diff'] = ku.normalize(data[f'{i}_lat_diff'])
-        data[f'{i}_lng_diff'] = ku.normalize(data[f'{i}_lng_diff'])
-        data[f'{i}_masl_diff'] = ku.normalize(data[f'{i}_masl_diff'])
+        data[f'{i}_masl_diff'] = ku.normalize(data[f'{i}_masl_diff'], -1000, 1000)
         data[f'{i}_value'] = ku.normalize(data[f'{i}_value'], 0, normalization_upper)
     data['station_x_actual'] = ku.normalize(data['station_x_actual'], 0, normalization_upper)
 
@@ -145,3 +152,4 @@ if __name__ == '__main__':
     model = train_interpolation(train_x, train_y, val_x, val_y)
 
     plot(model, val_x, val_y)
+    plot(NearestNeighbourModel(), val_x, val_y)
