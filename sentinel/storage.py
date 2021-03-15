@@ -2,8 +2,8 @@ import h5py
 import numpy as np
 import random
 import os
-import copy
-from typing import List
+from copy import copy
+from typing import List, Callable
 
 
 class SentinelDataset:
@@ -19,24 +19,26 @@ class SentinelDataset:
         self.labels = self.__load_labels()
     
     def get_iterator(self, shuffle=False):
-        labels = copy.copy(self.labels)
+        labels = copy(self.labels)
         if shuffle:
             random.shuffle(labels)
 
         return SentinelDatasetIterator(self, labels)
 
     def get_iterators(self, val_split=0.2, shuffle=True):
-        labels = copy.copy(self.labels)
+        labels = copy(self.labels)
+
         if shuffle:
             random.shuffle(labels)
 
-        num = len(self.labels)
+        num = len(labels)
         split = int(val_split * num)
         train_labels = labels[split:]
         val_labels = labels[:split]
         
-        training_iterator = SentinelDatasetIterator(self, train_labels)
-        validation_iterator = SentinelDatasetIterator(self, val_labels)
+        training_iterator = SentinelDatasetIterator(self, labels=train_labels)
+        validation_iterator = SentinelDatasetIterator(self, labels=val_labels)
+
         return training_iterator, validation_iterator
 
     def __load_labels(self):
@@ -111,44 +113,73 @@ class SentinelDataset:
 
 
 class SentinelImageSeriesSource:
-    def __init__(self, dataset: h5py.Dataset) -> None:
+    def __init__(self, dataset: h5py.Dataset, transformations: List[Callable] = []) -> None:
         self.image_dataset = dataset
+        self.transformations = transformations
 
     def __getitem__(self, key):
-        images:np.ndarray = self.image_dataset[key]
-        return images / SentinelDataset.INT_SCALE
+        images:np.ndarray = self.image_dataset[key] / SentinelDataset.INT_SCALE
+
+        for transform in self.transformations:
+            images = transform(images)
+
+        return images
         
 
 class SentinelDatasetIterator:
-    def __init__(self, dataset: SentinelDataset, labels: List[str]):
+    def __init__(self, dataset, labels:List[str]=None, tuples=None):
         self.dataset = dataset
         self.filename = dataset.filename
-        self.labels = labels
-        self.n = len(labels)
 
-    def __len__(self):
-        return self.n
+        if tuples is not None:
+            self.tuples = tuples
+        
+        else:
+            labels = list(map(lambda l: l.split("/")[1:3], labels))
+            self.tuples = [(orgnr, year, []) for orgnr, year in labels]
+    
+    def augment(self, transformations: List[Callable]):
+        tuples = copy(self.tuples)
+
+        for transformation in transformations:
+            new_tuples = []
+            for orgnr, year, t_list in self.tuples:
+                new_tuples.append((orgnr, year, t_list + [transformation]))
+            
+            tuples = tuples + new_tuples
+        
+        random.shuffle(tuples)
+
+        return SentinelDatasetIterator(self.dataset, tuples=tuples)
 
     def __iter__(self):
         with h5py.File(self.filename, "r+") as file:
-            i = 0
-            while i < self.n:
-                orgnr, year = self.labels[i].split("/")[1:3]
+            for orgnr, year, transformations in self.tuples:
+
                 img_dataset:h5py.Dataset = file[f"images/{orgnr}/{year}"]
-                yield orgnr, year, SentinelImageSeriesSource(img_dataset)
-                i += 1
-    
+                yield orgnr, year, SentinelImageSeriesSource(img_dataset, transformations)
+
     def __getitem__(self, key):
         # If key is a slice, eg. [0:10], we return a new iterator over the sequence
         if isinstance(key, slice):
-            labels_slice = self.labels[key]
-            it = SentinelDatasetIterator(self.dataset, labels_slice)
+            tuples = self.tuples[key]
+            it = SentinelDatasetIterator(self.dataset, tuples=tuples)
             return it
         
         # It's just an index
         elif isinstance(key, int):
-            orgnr, year = self.labels[key].split("/")[1:3]
-            return orgnr, year, self.dataset.get_images(orgnr, year)
+            orgnr, year, transformation_idx = self.tuples[key]
+            imgs = self.dataset.get_images(orgnr, year)
+            
+            transformation = self.transformations[transformation_idx]
+            if transformation is not None:
+                return orgnr, year, transformation(imgs)
+                
+            return orgnr, year, imgs
         
         else:
             raise TypeError(f"Indices must be integers or slices, not {type(key)}")
+    
+
+    def __len__(self):
+        return len(self.tuples)

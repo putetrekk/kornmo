@@ -2,6 +2,7 @@ from numbers import Number
 from typing import Iterable, Any, List
 from pandas import DataFrame
 import pandas as pd
+import numpy as np
 from sklearn import preprocessing
 
 import pandas as pd
@@ -23,8 +24,9 @@ def filter_extremes(df: DataFrame, column: Any, lower: float = None, upper: floa
     :return: A new DataFrame with extreme values of the given column filtered out.
     """
 
-    mean = df[column].mean()
-    std = df[column].std()
+    series = df[column].replace([np.inf, -np.inf], np.nan).dropna()
+    mean = series.mean()
+    std = series.std()
     if lower is None:
         lower = mean - 2 * std
     if upper is None:
