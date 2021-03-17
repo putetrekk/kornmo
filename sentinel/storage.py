@@ -4,6 +4,7 @@ import random
 import os
 from copy import copy
 from typing import List, Callable
+from inspect import signature
 
 
 class SentinelDataset:
@@ -113,15 +114,22 @@ class SentinelDataset:
 
 
 class SentinelImageSeriesSource:
-    def __init__(self, dataset: h5py.Dataset, transformations: List[Callable] = []) -> None:
+    def __init__(self, dataset: h5py.Dataset, orgnr, year, transformations: List[Callable] = []) -> None:
         self.image_dataset = dataset
-        self.transformations = transformations
+        self.__orgnr = orgnr
+        self.__year = year
+        self.__transformations = transformations
+        self.__mask: Union[np.ndarray, None] = None
 
     def __getitem__(self, key):
         images:np.ndarray = self.image_dataset[key] / SentinelDataset.INT_SCALE
 
-        for transform in self.transformations:
-            images = transform(images)
+        for transform in self.__transformations:
+            sig = signature(transform)
+            if len(sig.parameters) == 3:
+                images = transform(self.__orgnr, self.__year, images)
+            else:
+                images = transform(images)
 
         return images
         
@@ -137,6 +145,13 @@ class SentinelDatasetIterator:
         else:
             labels = list(map(lambda l: l.split("/")[1:3], labels))
             self.tuples = [(orgnr, year, []) for orgnr, year in labels]
+
+    def transform(self, transformation: Callable):
+        new_tuples = []
+        for orgnr, year, t_list in self.tuples:
+            new_tuples.append((orgnr, year, t_list + [transformation]))
+        
+        return SentinelDatasetIterator(self.dataset, tuples=new_tuples)
     
     def augment(self, transformations: List[Callable]):
         tuples = copy(self.tuples)
@@ -157,7 +172,7 @@ class SentinelDatasetIterator:
             for orgnr, year, transformations in self.tuples:
 
                 img_dataset:h5py.Dataset = file[f"images/{orgnr}/{year}"]
-                yield orgnr, year, SentinelImageSeriesSource(img_dataset, transformations)
+                yield orgnr, year, SentinelImageSeriesSource(img_dataset, orgnr, year, transformations)
 
     def __getitem__(self, key):
         # If key is a slice, eg. [0:10], we return a new iterator over the sequence
