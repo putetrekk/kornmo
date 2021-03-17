@@ -1,8 +1,11 @@
 import numpy as np
-import geopandas as gpd
 import pandas as pd
 from mask.geo_point_translator import GeoPointTranslator
 from PIL import Image, ImageDraw
+
+
+def add_mask_as_channel_to_image(mask, img):
+    return np.concatenate((img, mask[:, :, np.newaxis]), axis=2)
 
 
 def add_mask_as_channel(mask, image_series):
@@ -82,6 +85,7 @@ def generate_mask_from_fields(bbox, fields_df):
 
 
 def get_sentinel_shapes(bb_path, farms_path):
+    import geopandas as gpd
     matrikkel_shp_gpd = gpd.read_file(bb_path)
     matrikkel_file_df = pd.DataFrame(matrikkel_shp_gpd)
 
