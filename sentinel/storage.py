@@ -3,7 +3,7 @@ import numpy as np
 import random
 import os
 from copy import copy
-from typing import List, Callable
+from typing import List, Callable, Union
 from inspect import signature
 
 
@@ -135,9 +135,10 @@ class SentinelImageSeriesSource:
         
 
 class SentinelDatasetIterator:
-    def __init__(self, dataset, labels:List[str]=None, tuples=None):
+    def __init__(self, dataset, labels:List[str]=None, tuples=None, transformations: List[Callable]=[]):
         self.dataset = dataset
         self.filename = dataset.filename
+        self.__transformations: List[Callable] = transformations
 
         if tuples is not None:
             self.tuples = tuples
@@ -146,14 +147,31 @@ class SentinelDatasetIterator:
             labels = list(map(lambda l: l.split("/")[1:3], labels))
             self.tuples = [(orgnr, year, []) for orgnr, year in labels]
 
+    def apply(self, transformation: Callable):
+        '''
+        Apply a function to every element in the collection, optionally reshaping the output.
+        '''
+        transformations = self.__transformations + [transformation]
+        return SentinelDatasetIterator(self.dataset, tuples=self.tuples, transformations=transformations)
+
     def transform(self, transformation: Callable):
+        '''
+        Apply a transformation that will be performed on the image source.
+        The transformation function must take either a single parameter (img_source), or three parameters (orgnr, year, and img_source),
+        and return a numpy array (an image).
+        '''
+
         new_tuples = []
         for orgnr, year, t_list in self.tuples:
             new_tuples.append((orgnr, year, t_list + [transformation]))
         
-        return SentinelDatasetIterator(self.dataset, tuples=new_tuples)
-    
     def augment(self, transformations: List[Callable]):
+        '''
+        Apply multiple transformations that will be performed on the image source, generating more output images.
+        Each transformation function must take either a single parameter (img_source), or three parameters (orgnr, year, and img_source),
+        and return a numpy array (an image).
+        '''
+
         tuples = copy(self.tuples)
 
         for transformation in transformations:
@@ -165,32 +183,53 @@ class SentinelDatasetIterator:
         
         random.shuffle(tuples)
 
-        return SentinelDatasetIterator(self.dataset, tuples=tuples)
+        return SentinelDatasetIterator(self.dataset, tuples=tuples, transformations=self.__transformations)
+
+    def __call__(self):
+        '''
+        Allows tensorflow from_generator to use this class as a generator as-is
+        '''
+
+        return self.__iter__()
 
     def __iter__(self):
         with h5py.File(self.filename, "r+") as file:
             for orgnr, year, transformations in self.tuples:
 
                 img_dataset:h5py.Dataset = file[f"images/{orgnr}/{year}"]
-                yield orgnr, year, SentinelImageSeriesSource(img_dataset, orgnr, year, transformations)
+                img_source = SentinelImageSeriesSource(img_dataset, orgnr, year, transformations)
+                
+                output = (orgnr, year, img_source)
+                for transformation in self.__transformations:
+                    output = transformation(*output)
+
+                yield output
 
     def __getitem__(self, key):
         # If key is a slice, eg. [0:10], we return a new iterator over the sequence
         if isinstance(key, slice):
             tuples = self.tuples[key]
-            it = SentinelDatasetIterator(self.dataset, tuples=tuples)
+            it = SentinelDatasetIterator(self.dataset, tuples=tuples, transformations=self.__transformations)
             return it
         
         # It's just an index
         elif isinstance(key, int):
-            orgnr, year, transformation_idx = self.tuples[key]
+            orgnr, year, image_transformations = self.tuples[key]
             imgs = self.dataset.get_images(orgnr, year)
             
-            transformation = self.transformations[transformation_idx]
-            if transformation is not None:
-                return orgnr, year, transformation(imgs)
-                
-            return orgnr, year, imgs
+            for transform in image_transformations:
+                sig = signature(transform)
+                if len(sig.parameters) == 3:
+                    imgs = transform(orgnr, year, imgs)
+                else:
+                    imgs = transform(imgs)
+
+            output = (orgnr, year, imgs)
+            for transformation in self.__transformations:
+                output = transformation(*output)
+            
+            return output
+            
         
         else:
             raise TypeError(f"Indices must be integers or slices, not {type(key)}")
