@@ -165,6 +165,8 @@ class SentinelDatasetIterator:
         for orgnr, year, t_list in self.tuples:
             new_tuples.append((orgnr, year, t_list + [transformation]))
         
+        return SentinelDatasetIterator(self.dataset, tuples=new_tuples, transformations=self.__transformations)
+        
     def augment(self, transformations: List[Callable]):
         '''
         Apply multiple transformations that will be performed on the image source, generating more output images.

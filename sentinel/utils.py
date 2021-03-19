@@ -20,12 +20,21 @@ def highlight_optimized_natural_color(B):
     return [B[0]**(1/3) - 0.035, B[1]**(1/3) - 0.035, B[2]**(1/3) - 0.035]
 
 
-def to_rgb(img, map_func=true_color):
+def to_rgb(img, map_func):
     '''
     Apply a mapping function to convert a multiband image into rgb components.
 
     true color: to_rgb(img, lambda x: [x[3], x[2], x[1]])
     '''
+
+    # Interpret 4-dimentional arrays as a series of images
+    if img.ndim == 4:
+        imgs = img
+        result = []
+        for img in imgs:
+            result.append(to_rgb(img, map_func))
+        return np.asarray(result)
+
     shape = img.shape
     newImg = []
     for row in range(0, shape[0]):
