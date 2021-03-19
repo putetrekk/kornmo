@@ -4,7 +4,7 @@ from sklearn.utils import shuffle
 
 import utils
 import matplotlib.pyplot as plt
-import kornmo_utils as ku
+import weather_interpolation_utils as wiu
 
 normalization_upper = 100
 
@@ -31,9 +31,9 @@ def make_dataset_entry(lat, lng, masl, actual, closest: pd.DataFrame) -> pd.Seri
 
 def get_weather_dataset() -> pd.DataFrame:
     try:
-        return pd.read_csv('numbers.csv', index_col='index')
+        return pd.read_csv('precipitations.csv', index_col='index')
     except IOError:
-        print("no existing numbers.csv file found, will create, hold on tight!")
+        print("no existing precipitations.csv file found, will create, hold on tight!")
 
     frost_sources = pd.read_csv('../data/frost/frost_sources.csv', index_col=['id'])
 
@@ -61,7 +61,7 @@ def get_weather_dataset() -> pd.DataFrame:
                 )
                 df = df.append(series, ignore_index=True)
 
-    df.to_csv('numbers.csv', index_label='index')
+    df.to_csv('precipitations.csv', index_label='index')
 
     return df
 
@@ -94,6 +94,8 @@ def train_interpolation(train_x, train_y, val_x, val_y):
         verbose=2,
     )
 
+    model.save('precipitation_model.h5')
+
     plt.xlabel('Epoch')
     plt.ylabel("Loss")
     plt.plot(history.history['loss'], label="loss")
@@ -108,7 +110,7 @@ def plot(model, data_x, data_y):
     predictions = model.predict(data_x)
     df = pd.DataFrame({'actual': data_y.flatten(), 'prediction': predictions.flatten()})
 
-    df = ku.denormalize(df, 0, normalization_upper)
+    df = wiu.denormalize_prediction(df)
     df['abs_error'] = abs(df['prediction'] - df['actual'])
     print(f"Denormalized MAE: {df['abs_error'].mean()}")
 
@@ -134,12 +136,8 @@ class NearestNeighbourModel:
 if __name__ == '__main__':
     data = get_weather_dataset()
 
-    for i in range(3):
-        data[f'{i}_masl_diff'] = ku.normalize(data[f'{i}_masl_diff'], -1000, 1000)
-        data[f'{i}_value'] = ku.normalize(data[f'{i}_value'], 0, normalization_upper)
-    data['station_x_actual'] = ku.normalize(data['station_x_actual'], 0, normalization_upper)
-
-    y_column = ['y']
+    data = wiu.normalize_precipitation_inputs(data)
+    data = wiu.normalize_precipitation_actual(data)
 
     train, val = train_test_split(shuffle(data), test_size=0.2)
     val, test = train_test_split(val, test_size=0.2)
