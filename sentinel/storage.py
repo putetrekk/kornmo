@@ -112,7 +112,6 @@ class SentinelImageSeriesSource:
         self.__orgnr = orgnr
         self.__year = year
         self.__transformations = transformations
-        self.__mask: Union[np.ndarray, None] = None
 
     def __getitem__(self, key):
         images:np.ndarray = self.image_source[key] / SentinelDataset.INT_SCALE
