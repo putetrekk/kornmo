@@ -8,3 +8,7 @@ __pycache__/
 screens
 .vscode/
 /logs/
+/frost/temperature_model.h5
+/frost/precipitation_model.h5
+/frost/precipitations.csv
+/frost/temperatures.csv
