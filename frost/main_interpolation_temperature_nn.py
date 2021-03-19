@@ -3,7 +3,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle
 
-import kornmo_utils as ku
+import weather_interpolation_utils as wiu
 import utils
 
 normalization_lower = -30
@@ -136,7 +136,7 @@ def plot(model, data_x, data_y):
         'prediction_max': predictions[2].flatten()
     })
 
-    df = ku.denormalize(df, normalization_lower, normalization_upper)
+    df = wiu.denormalize_temperature_prediction(df)
 
     for thing in ['min', 'mean', 'max']:
         df[f'abs_error_{thing}'] = abs(df[f'prediction_{thing}'] - df[f'actual_{thing}'])
@@ -163,14 +163,8 @@ if __name__ == '__main__':
 
     data = get_weather_dataset().dropna()
 
-    for i in range(3):
-        data[f'{i}_masl_diff'] = ku.normalize(data[f'{i}_masl_diff'], -1000, 1000)
-        data[f'{i}_min'] = ku.normalize(data[f'{i}_min'], normalization_lower, normalization_upper)
-        data[f'{i}_mean'] = ku.normalize(data[f'{i}_mean'], normalization_lower, normalization_upper)
-        data[f'{i}_max'] = ku.normalize(data[f'{i}_max'], normalization_lower, normalization_upper)
-    data['station_x_min'] = ku.normalize(data['station_x_min'], normalization_lower, normalization_upper)
-    data['station_x_mean'] = ku.normalize(data['station_x_mean'], normalization_lower, normalization_upper)
-    data['station_x_max'] = ku.normalize(data['station_x_max'], normalization_lower, normalization_upper)
+    data = wiu.normalize_temperature_inputs(data)
+    data = wiu.normalize_temperature_actual(data)
 
     y_columns = ['station_x_min', 'station_x_mean', 'station_x_max']
 

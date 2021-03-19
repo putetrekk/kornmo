@@ -110,7 +110,7 @@ def plot(model, data_x, data_y):
     predictions = model.predict(data_x)
     df = pd.DataFrame({'actual': data_y.flatten(), 'prediction': predictions.flatten()})
 
-    df = wiu.denormalize_prediction(df)
+    df = wiu.denormalize_precipitation_prediction(df)
     df['abs_error'] = abs(df['prediction'] - df['actual'])
     print(f"Denormalized MAE: {df['abs_error'].mean()}")
 
