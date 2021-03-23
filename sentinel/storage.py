@@ -50,11 +50,14 @@ class SentinelDataset:
             file.visititems(visit_func)
         return labels
 
-    def get_images(self, orgnr, year) -> Union[np.ndarray, None]:
+    def get_images(self, orgnr, year, raw=False) -> Union[np.ndarray, None]:
         label = f"images/{orgnr}/{year}"
         if label in self.labels:
             with h5py.File(self.filename, "r+") as file:
-                return file[label][()] / self.INT_SCALE
+                if raw:
+                    return file[label][()]
+                else:
+                    return file[label][()] / self.INT_SCALE
 
     def del_images(self, orgnr, year):
         label = f"images/{orgnr}/{year}"
@@ -196,21 +199,20 @@ class SentinelDatasetIterator:
         
         return SentinelDatasetIterator(source=self, tuples=new_tuples)
         
-    def augment(self, transformations: List[Union[Callable[[SentinelImageSeriesSource], Any], Callable[[str, str, SentinelImageSeriesSource], Any]]]):
+    def augment(self, transformations: List[Union[Callable[[SentinelImageSeriesSource], Any], Callable[[str, str, SentinelImageSeriesSource], Any]]], keep_original=True):
         '''
         Apply multiple transformations that will be performed on the image source, generating more output images.
         Each transformation function must take either a single parameter (img_source), or three parameters (orgnr, year, and img_source),
         and return a numpy array (an image).
         '''
+        tuples = []
 
-        tuples = copy(self.__tuples)
-
-        for transformation in transformations:
-            new_tuples = []
-            for orgnr, year, t_list in self.__tuples:
-                new_tuples.append((orgnr, year, t_list + [transformation]))
+        for orgnr, year, t_list in self.__tuples:
+            if keep_original:
+                tuples.append((orgnr, year, t_list))
             
-            tuples = tuples + new_tuples
+            for transformation in transformations:
+                tuples.append((orgnr, year, t_list + [transformation]))
         
         return SentinelDatasetIterator(source=self, tuples=tuples)
 
@@ -221,11 +223,10 @@ class SentinelDatasetIterator:
         '''
         return SentinelDatasetIterator(source=self, shuffle=should_shuffle)
 
-    def __process_tuple(self, tuple, img_source):
-        orgnr, year, image_transformations = tuple
-        img_source = SentinelImageSeriesSource(img_source, orgnr, year, image_transformations)
-
-        output = (orgnr, year, img_source)
+    def __process_tuple(self, tuple, image_source):
+        orgnr, year = tuple[0:2]
+        
+        output = (orgnr, year, image_source)
         for transformation in self.__transformations:
             output = transformation(*output)
 
@@ -252,23 +253,31 @@ class SentinelDatasetIterator:
             random.shuffle(self.__tuples)
         
         filename = self.__dataset.filename
-        with h5py.File(filename, "r+") as file:
+        with h5py.File(filename, "r") as file:
             for tuple in self.__tuples:
                 orgnr, year = tuple[0:2]
-                img_source = file[f"images/{orgnr}/{year}"]
+                img_source = SentinelImageSeriesSource(file[f"images/{orgnr}/{year}"], *tuple)
                 yield self.__process_tuple(tuple, img_source)
 
     def __getitem__(self, key):
+        tuples = self.__tuples
+        if self.__shuffle:
+            random.shuffle(tuples)
+        
         # If key is a slice, eg. [0:10], we return a new iterator over the sequence
         if isinstance(key, slice):
-            tuples = self.__tuples[key]
-            it = SentinelDatasetIterator(source=self, tuples=tuples)
-            return it
+            tuples = tuples[key]
+            return SentinelDatasetIterator(source=self, tuples=tuples)
         
         # It's just an index
         elif isinstance(key, int):
-            tuple = self.__tuples[key]
-            img_source = self.__dataset.get_images(*tuple[0:2])
+            tuple = tuples[key]
+
+            orgnr, year = tuple[0:2]
+            images = self.__dataset.get_images(orgnr, year, raw=True)
+            assert images is not None
+
+            img_source = SentinelImageSeriesSource(images, *tuple)
             return self.__process_tuple(tuple, img_source)
 
         else:
@@ -276,3 +285,6 @@ class SentinelDatasetIterator:
     
     def __len__(self):
         return len(self.__tuples)
+
+    def as_array(self):
+        return np.asarray(self)

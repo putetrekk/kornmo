@@ -20,7 +20,7 @@ def highlight_optimized_natural_color(B):
     return [B[0]**(1/3) - 0.035, B[1]**(1/3) - 0.035, B[2]**(1/3) - 0.035]
 
 
-def to_rgb(img, map_func):
+def to_rgb(img, map_func=true_color):
     '''
     Apply a mapping function to convert a multiband image into rgb components.
 
