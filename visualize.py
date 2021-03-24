@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import kornmo_utils as ku
 
 from visualize_utils import make_image_path
 
@@ -13,6 +14,10 @@ def plot(model, data_x, data_y):
     fig, (ax1, ax2) = plt.subplots(2, 2, figsize=(8, 8), squeeze=True)
     __plot_prediction_vs_y_1(df, ax1)
     __plot_prediction_vs_y_2(df, ax2)
+
+    df['absolute_error'] = (df['prediction'] - df['relative production']).abs()
+
+    print(f"Denormalized MAE: {ku.denormalize(df['absolute_error'].mean(), 0, 1000)}")
 
     plt.show()
 
@@ -36,6 +41,7 @@ def __plot_prediction_vs_y_1(df, ax):
     ax[0].plot(df['prediction'], 'o', markersize=1, label="prediction")
     ax[0].plot(df['relative production'], '--', label='relative production')
     ax[0].legend()
+    ax[0].set_ylim(-0.05, 0.95)
 
 
 def __plot_prediction_vs_y_2(df, ax):
@@ -57,6 +63,7 @@ def __plot_prediction_vs_y_2(df, ax):
     ax[0].plot(df['relative production'], 'o', markersize=1, label='relative production')
     ax[0].plot(df['prediction'], '--', label="prediction")
     ax[0].legend()
+    ax[0].set_ylim(-0.05, 0.95)
 
 
 def change_grown_type(farmer_dataframe, all_combos):

@@ -87,6 +87,7 @@ class FrostDataset:
                     growth_start_df.at[index, 'growth_start_day'] = i + 3
                     break
 
+        growth_start_df = growth_start_df.fillna(213)
         return growth_start_df['growth_start_day'].astype(int)
 
     def __load_from_files(self, years: List[int] = None):
@@ -111,7 +112,13 @@ class FrostDataset:
 
     @staticmethod
     def __load_file(file_group: str, year: str):
-        data = pd.read_csv(f'data/{file_group}_{year}-04-01-{year}-10-01.csv', index_col=0).dropna()
+        use_nn_interpolation = True
+        if use_nn_interpolation:
+            data: pd.DataFrame = pd.read_csv(
+                f'data/frost/nn_interpolated/{file_group}_interpolated_{year}-03-01_to_{year}-10-01.csv', index_col=0).dropna()
+        else:
+            data: pd.DataFrame = pd.read_csv(
+                f'data/frost/by_proximity/{file_group}_by_proximity_{year}-03-01_to_{year}-10-01.csv', index_col=0).dropna()
 
         col_mapper = {
             element: f'{file_group}_{element}' for element in data.columns if element.startswith("day_")
