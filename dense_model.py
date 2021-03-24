@@ -8,9 +8,9 @@ def train_simple_dense(train_x, train_y, val_x, val_y):
 
 
     model = Sequential()
-    model.add(Dense(units=256, activation="tanh", input_dim=len(train_x[0])))
+    model.add(Dense(units=512, activation="tanh", input_dim=len(train_x[0])))
     model.add(Dropout(0.1))
-    model.add(Dense(units=64, activation="tanh"))
+    model.add(Dense(units=128, activation="tanh"))
     model.add(Dropout(0.25))
     model.add(Dense(units=64, activation="tanh"))
     model.add(Dense(units=1))
@@ -19,7 +19,11 @@ def train_simple_dense(train_x, train_y, val_x, val_y):
     model.summary()
 
     #model.load_weights("testweights")
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=50, min_delta=0.0001)
+    early_stopping = tf.keras.callbacks.EarlyStopping(
+        monitor='val_loss',
+        patience=100,
+        min_delta=0.0001,
+        restore_best_weights=True)
     history = model.fit(
         train_x, train_y,
         validation_data=(val_x, val_y),
@@ -34,6 +38,7 @@ def train_simple_dense(train_x, train_y, val_x, val_y):
     plt.plot(history.history['loss'], label="loss")
     plt.plot(history.history['val_loss'], label="val_loss")
     plt.legend()
+    plt.ylim(0, 0.125)
     plt.show()
 
     return model

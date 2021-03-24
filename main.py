@@ -28,7 +28,7 @@ if __name__ == '__main__':
     data['y'] = data['levert'] / data['areal']
     data.drop('levert', axis=1, inplace=True)
 
-    data['y'] = ku.normalize(data['y'])
+    data['y'] = ku.normalize(data['y'], 0, 1000)
     data['areal'] = ku.normalize(data['areal'])
     data['fulldyrket'] = ku.normalize(data['fulldyrket'])
     data['overflatedyrket'] = ku.normalize(data['overflatedyrket'])
@@ -52,4 +52,4 @@ if __name__ == '__main__':
 
     area_type = "dekar"
     plot(model, val_x, val_y)
-    generate_alternative_outcomes(test, model, y_column, remove_from_training, area_type)
+    # generate_alternative_outcomes(test, model, y_column, remove_from_training, area_type)
