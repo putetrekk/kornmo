@@ -61,7 +61,9 @@ def update_farm_ids(df: pd.DataFrame, lookup_table=None, columns=["kommunenr","g
 def create_farm_id_translate_table(df: pd.DataFrame, columns=["kommunenr","gaardsnummer","bruksnummer","festenummer"]):
     """
     For a dataframe with farmers, each identified by kommunenr, gårdsnummer, bruksnummer, and festenummer, 
-    returns a new dataframe with new and updated ids for every farmer, along with the old ids.
+    returns a new dataframe with new and updated ids for every farmer, queried against the geonorge commune reform api.
+
+    Settle in, this could take a while...
     """
 
     old_farms = df[columns]
