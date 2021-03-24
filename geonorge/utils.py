@@ -10,6 +10,7 @@ def update_farm_ids(df: pd.DataFrame, lookup_table=None, columns=["kommunenr","g
     If no lookup table is supplied, we default to the table stored in 'data/geonorge/nye_gaards_og_bruksnummer.csv'.
 
     example:
+    ```
     > farms
     	        komnr   gnr     bnr     fnr
         0	    1702	97	    3   	0
@@ -37,6 +38,7 @@ def update_farm_ids(df: pd.DataFrame, lookup_table=None, columns=["kommunenr","g
         44575	3415    53      11      0
         44576	3411    15      14      0
         44577	3411    143     2       0
+    ```
     """
 
     if lookup_table is None or isinstance(lookup_table, str):
@@ -101,8 +103,10 @@ def get_points_of_location(kommunenr, gardsnr, bruksnr=None, festenr=None):
     Get a list of geographical coordinates (lat, lng) for a given farm, taken from geonorge address search.
 
     Example:
+    ```
     > get_location(3014, 427, 8)
     [(59.6096543, 11.1044264)]
+    ```
     """
 
     coordSystem = 4326  # WGS84
