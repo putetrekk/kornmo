@@ -1,5 +1,3 @@
-from tqdm.autonotebook import tqdm
-from typing import List
 import pandas as pd
 import requests
 
@@ -55,6 +53,7 @@ def update_farm_ids(df: pd.DataFrame, lookup_table=None, columns=["kommunenr","g
 
     updated_df = df.copy(deep=True)
     updated_df.update(update)
+    updated_df.loc[:,columns] = updated_df.loc[:,columns].astype(int)
     return updated_df
 
 
@@ -65,6 +64,8 @@ def create_farm_id_translate_table(df: pd.DataFrame, columns=["kommunenr","gaard
 
     Settle in, this could take a while...
     """
+
+    from tqdm.autonotebook import tqdm
 
     old_farms = df[columns]
     
