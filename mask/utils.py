@@ -8,14 +8,19 @@ def add_mask_as_channel_to_image(mask, img):
     return np.concatenate((img, mask[:, :, np.newaxis]), axis=2)
 
 
-def add_mask_as_channel(mask, image_series):
-    n_imgs = image_series.shape[0]
-    
-    # Reshape and duplicate the mask for each image
-    mask = np.tile(mask.reshape(100, 100, 1), (n_imgs, 1, 1, 1))
+def add_mask_as_channel(mask, image_source):
+    # Reshape the mask to 3 dimensions
+    mask = mask.reshape(100, 100, 1)
+
+    if image_source.ndim == 4:
+        # Duplicate the mask for each image
+        n_imgs = image_source.shape[0]
+        mask = np.tile(mask, (n_imgs, 1, 1, 1))
+        
+        return np.concatenate((image_source, mask), axis=3)
 
     # Add the mask as the last channel in each image
-    return np.concatenate((image_series, mask), axis=3)
+    return np.concatenate((image_source, mask), axis=2)
 
 
 def apply_mask_to_image_series(mask, image_series):

@@ -1,6 +1,7 @@
 import h5py
 import numpy as np
 import random
+import errno
 import os
 import itertools
 from copy import copy
@@ -16,9 +17,9 @@ class SentinelDataset:
     '''
     INT_SCALE = 255
 
-    def __init__(self, file: str):
+    def __init__(self, file: str, create_if_missing=False):
         self.filename = file
-        self.labels = self.__load_labels()
+        self.labels = self.__load_labels(create_if_missing)
     
     def __len__(self):
         return len(self.labels)
@@ -35,8 +36,11 @@ class SentinelDataset:
     def to_iterator(self):
         return SentinelDatasetIterator.from_dataset(self)
 
-    def __load_labels(self):
+    def __load_labels(self, create_if_missing=False):
         if not os.path.exists(self.filename):
+            if not create_if_missing:
+                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), self.filename)
+            
             with h5py.File(self.filename, "a") as file:
                 file.create_group("images")
 
@@ -46,14 +50,14 @@ class SentinelDataset:
                 return
             labels.append(name)
 
-        with h5py.File(self.filename, "r+") as file:
+        with h5py.File(self.filename, "r") as file:
             file.visititems(visit_func)
         return labels
 
     def get_images(self, orgnr, year, raw=False) -> Union[np.ndarray, None]:
         label = f"images/{orgnr}/{year}"
         if label in self.labels:
-            with h5py.File(self.filename, "r+") as file:
+            with h5py.File(self.filename, "r") as file:
                 if raw:
                     return file[label][()]
                 else:
@@ -98,7 +102,7 @@ class SentinelDataset:
             c_args = {'compression': 'gzip', 'compression_opts': compression}
 
         with h5py.File(output_file, "a") as out_file:
-            with h5py.File(self.filename, "r+") as file:
+            with h5py.File(self.filename, "r") as file:
                 for label in tqdm(self.labels):
                     data = file[label][()]
                     out_file.create_dataset(name=label, data=data, **c_args)
