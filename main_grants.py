@@ -1,5 +1,5 @@
 from kornmo import KornmoDataset
-from frost import FrostDataset
+from frostdataset import FrostDataset
 import kornmo_utils as ku
 from sklearn.model_selection import train_test_split
 from sklearn.utils import shuffle

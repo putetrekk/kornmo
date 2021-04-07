@@ -1,5 +1,5 @@
 from kornmo import KornmoDataset
-from frost import FrostDataset
+from frostdataset import FrostDataset
 from geodata import get_farmer_elevation
 from visualize import plot, generate_alternative_outcomes
 from sklearn.utils import shuffle
