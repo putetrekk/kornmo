@@ -151,3 +151,60 @@ def generate_alternative_outcomes(data_df, model, y_column, remove_from_training
         plt.xticks(x_pos, labels)
         plt.savefig(make_image_path(f'areal_{farmer["orgnr"]}'), format='png')
         plt.show()
+
+
+def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True):
+    percentiles = np.linspace(0, 100, n_bins+1)
+    bins = np.percentile(facts, percentiles).astype(int)
+
+    bin_labels = [str(bin) for bin in bins]
+    bin_labels = [bin_labels[1]] + bin_labels[2:-1] + [bin_labels[-1]]
+
+    fact_binned = pd.cut(facts, bins, labels=bin_labels)
+    pred_binned = pd.cut(predictions, bins, labels=bin_labels)
+
+    confusion_matrix = pd.crosstab(pred_binned, fact_binned, dropna=False)
+    confusion_matrix = confusion_matrix.iloc[::-1] # flip the prediction axis
+
+    plt.figure(figsize=(14,9))
+    plt.title("Discretized predictions from percentile bins", fontdict={'fontsize': 18})
+
+    sns.set_style('whitegrid')
+    sns.set_context("paper")
+
+    ax = sns.heatmap(
+        confusion_matrix, 
+        annot=annot, 
+        fmt='d',
+        linewidth=0.1,
+        cmap=sns.color_palette("Blues", as_cmap=True),
+        square=True,
+        # xticklabels=2,
+        # yticklabels=2,
+        robust=True,
+    )
+
+    # Add borders around the matrix
+    ax.axhline(y=0, color='k',linewidth=2)
+    ax.axhline(y=confusion_matrix.shape[1], color='k',linewidth=2)
+    ax.axvline(x=0, color='k',linewidth=2)
+    ax.axvline(x=confusion_matrix.shape[0], color='k',linewidth=2)
+    
+    # This sets the yticks "upright" with rotation=0, as opposed to sideways with 90.
+    plt.yticks(rotation=0)
+
+    ax.set_xlabel("Fact")
+    ax.set_ylabel("Prediction")
+    plt.show()
+
+def plot_history(history):
+    sns.set_style('whitegrid')
+    sns.set_context("paper")
+    
+    plt.xlabel('Epoch')
+    plt.ylabel("Loss")
+    plt.plot(history.history['loss'], label="loss")
+    plt.plot(history.history['val_loss'], label="val_loss")
+    plt.legend()
+    plt.title("Mean absolute error loss")
+    plt.grid()
