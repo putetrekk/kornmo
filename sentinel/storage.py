@@ -1,3 +1,4 @@
+from operator import itemgetter
 import h5py
 import numpy as np
 import random
@@ -5,7 +6,7 @@ import errno
 import os
 import itertools
 from copy import copy
-from typing import Any, List, Callable, Tuple, Union
+from typing import Any, Dict, List, Callable, Tuple, Union
 from inspect import signature
 
 
@@ -114,18 +115,21 @@ class SentinelDataset:
 
 
 class SentinelImageSeriesSource:
-    def __init__(self, source: Union[h5py.Dataset, np.ndarray], orgnr, year, transformations: List[Callable] = []) -> None:
+    def __init__(self, source: Union[h5py.Dataset, np.ndarray], orgnr, year, transformations: List[Callable], data) -> None:
         self.image_source = source
         self.__orgnr = orgnr
         self.__year = year
         self.__transformations = transformations
+        self.__data = data
 
     def __getitem__(self, key):
         images:np.ndarray = self.image_source[key] / SentinelDataset.INT_SCALE
 
         for transform in self.__transformations:
             sig = signature(transform)
-            if len(sig.parameters) == 3:
+            if len(sig.parameters) == 4:
+                images = transform(self.__orgnr, self.__year, images, self.__data)
+            elif len(sig.parameters) == 3:
                 images = transform(self.__orgnr, self.__year, images)
             else:
                 images = transform(images)
@@ -137,13 +141,13 @@ class SentinelDatasetIterator:
     @staticmethod
     def from_dataset(dataset: SentinelDataset):
         tuples = map(lambda l: l.split("/")[1:3], dataset.labels)
-        tuples = [(orgnr, year, []) for orgnr, year in tuples]
+        tuples = [(orgnr, year, [], {}) for orgnr, year in tuples]
         return SentinelDatasetIterator(dataset=dataset, tuples=tuples)
 
     def __init__(self, 
                  dataset:SentinelDataset=None,
                  source=None,
-                 tuples: List[Tuple[str, str, List[Callable]]]=None,
+                 tuples: List[Tuple[str, str, List[Callable], Dict[Any, Any]]]=None,
                  transformations: List[Callable]=None,
                  shuffle=None):
 
@@ -171,7 +175,7 @@ class SentinelDatasetIterator:
         n = int(len(self) * split_ratio)
         return it[:n], it[n:]
     
-    def filter(self, predicate: Union[Callable[[str, str, SentinelImageSeriesSource], bool]]):
+    def filter(self, predicate: Union[Callable[[str, str, SentinelImageSeriesSource, Dict[Any, Any]], bool]]):
         '''
         Return an iterator with the elements of this iterator filtered by the supplied predicate.
         Expect this to take a while if accessing the image source.
@@ -190,7 +194,7 @@ class SentinelDatasetIterator:
         transformations = self.__transformations + [transformation]
         return SentinelDatasetIterator(source=self, transformations=transformations)
 
-    def transform(self, transformation: Union[Callable[[SentinelImageSeriesSource], Any], Callable[[str, str, SentinelImageSeriesSource], Any]]):
+    def transform(self, transformation: Union[Callable[[SentinelImageSeriesSource], Any], Callable[[str, str, SentinelImageSeriesSource, Dict[Any, Any]], Any]]):
         '''
         Apply a transformation that will be performed on the image source.
         The transformation function must take either a single parameter (img_source), or three parameters (orgnr, year, and img_source),
@@ -198,25 +202,25 @@ class SentinelDatasetIterator:
         '''
 
         new_tuples = []
-        for orgnr, year, t_list in self.__tuples:
-            new_tuples.append((orgnr, year, t_list + [transformation]))
+        for orgnr, year, t_list, data in self.__tuples:
+            new_tuples.append((orgnr, year, t_list + [transformation], data))
         
         return SentinelDatasetIterator(source=self, tuples=new_tuples)
         
     def augment(self, transformations: List[Union[Callable[[SentinelImageSeriesSource], Any], Callable[[str, str, SentinelImageSeriesSource], Any]]], keep_original=True):
         '''
         Apply multiple transformations that will be performed on the image source, generating more output images.
-        Each transformation function must take either a single parameter (img_source), or three parameters (orgnr, year, and img_source),
+        Each transformation function must take either a single parameter (img_source), or three/four parameters (orgnr, year, img_source, [data]),
         and return a numpy array (an image).
         '''
         tuples = []
 
-        for orgnr, year, t_list in self.__tuples:
+        for orgnr, year, t_list, data in self.__tuples:
             if keep_original:
-                tuples.append((orgnr, year, t_list))
+                tuples.append((orgnr, year, t_list, data))
             
             for transformation in transformations:
-                tuples.append((orgnr, year, t_list + [transformation]))
+                tuples.append((orgnr, year, t_list + [transformation], data))
         
         return SentinelDatasetIterator(source=self, tuples=tuples)
 
@@ -226,11 +230,30 @@ class SentinelDatasetIterator:
         A shuffled dataset will shuffle itself for each call to the iterator.
         '''
         return SentinelDatasetIterator(source=self, shuffle=should_shuffle)
+    
+    def with_data(self, func: Callable[[str, str, Dict], Dict]):
+        '''
+        Add key/value pairs of data that accompanies each image in the iterator.
+        Supply a function that takes three arguments (orgnr, year, dict) and returns a dict that will be merged with any previous values.
+        Return multiple dictionaries (tuple or list) to create multiple copies of an image, with different data dict.
+        '''
+
+        new_tuples = []
+
+        for orgnr, year, t_list, data in self.__tuples:
+            new_data = func(orgnr, year, dict(data))
+            if isinstance(new_data, (tuple, list)):
+                for d in new_data:
+                    new_tuples.append((orgnr, year, t_list, {**data, **d}))
+            else:
+                new_tuples.append((orgnr, year, t_list, {**data, **new_data}))
+        
+        return SentinelDatasetIterator(source=self, tuples=new_tuples)
 
     def __process_tuple(self, tuple, image_source):
-        orgnr, year = tuple[0:2]
+        orgnr, year, data  = itemgetter(0, 1, 3)(tuple)
         
-        output = (orgnr, year, image_source)
+        output = (orgnr, year, image_source, data)
         for transformation in self.__transformations:
             output = transformation(*output)
 
