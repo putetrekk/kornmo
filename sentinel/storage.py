@@ -231,7 +231,7 @@ class SentinelDatasetIterator:
         '''
         return SentinelDatasetIterator(source=self, shuffle=should_shuffle)
     
-    def with_data(self, func: Callable[[str, str, Dict], Dict]):
+    def with_data(self, func: Callable[[str, str, Dict], Dict], show_progress=False):
         '''
         Add key/value pairs of data that accompanies each image in the iterator.
         Supply a function that takes three arguments (orgnr, year, dict) and returns a dict that will be merged with any previous values.
@@ -240,7 +240,12 @@ class SentinelDatasetIterator:
 
         new_tuples = []
 
-        for orgnr, year, t_list, data in self.__tuples:
+        tuples = self.__tuples
+        if show_progress:
+            from tqdm.autonotebook import tqdm
+            tuples = tqdm(tuples)
+
+        for orgnr, year, t_list, data in tuples:
             new_data = func(orgnr, year, dict(data))
             if isinstance(new_data, (tuple, list)):
                 for d in new_data:
