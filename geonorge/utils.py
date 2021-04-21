@@ -38,6 +38,7 @@ def update_farm_ids(df: pd.DataFrame, lookup_table=None, columns=["kommunenr","g
         44577    3411    143     2       0
     ```
     """
+    df = df.reset_index()
 
     if lookup_table is None or isinstance(lookup_table, str):
         file = lookup_table or "data/geonorge/nye_gaards_og_bruksnummer.csv"
