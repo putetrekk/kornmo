@@ -96,7 +96,7 @@ class SentinelDataset:
         return f"images/{farmer_id}/{year}" in self.labels
     
     def copy_to(self, output_file: str, compression:int=0):
-        from tqdm import tqdm
+        from tqdm.auto import tqdm
         
         c_args = {}
         if compression > 0:
@@ -107,6 +107,23 @@ class SentinelDataset:
                 for label in tqdm(self.labels):
                     data = file[label][()]
                     out_file.create_dataset(name=label, data=data, **c_args)
+
+    @staticmethod
+    def combine_datasets(datasets, output_file: str, compression: int=0):
+        from tqdm.auto import tqdm
+        
+        c_args = {}
+        if compression > 0:
+            c_args = {'compression': 'gzip', 'compression_opts': compression}
+
+        with h5py.File(output_file, "a") as out_file:
+            for dataset in datasets:
+                assert isinstance(dataset, SentinelDataset)
+
+                with h5py.File(dataset.filename, "r") as file:
+                    for label in tqdm(dataset.labels, desc=f"Copying {dataset.filename}..."):
+                        data = file[label][()]
+                        out_file.create_dataset(name=label, data=data, **c_args)
 
     @staticmethod
     def __extract_orgnr_year(label):
