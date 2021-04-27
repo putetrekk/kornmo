@@ -1,7 +1,9 @@
 import numpy as np
 import pandas as pd
+from matplotlib import pyplot as plt
 from mask.geo_point_translator import GeoPointTranslator
 from PIL import Image, ImageDraw
+from sentinel.utils import highlight_optimized_natural_color, to_rgb, plot_image
 
 
 def add_mask_as_channel_to_image(mask, img):
@@ -30,6 +32,15 @@ def apply_mask_to_image_series(mask, image_series):
 def apply_mask_to_image(mask, image):
     return image * mask.reshape(100, 100, 1)
 
+
+def plot_masked_rgb_image(mask, single_image, transparency=0.0):
+    mask = mask.astype(float)
+    mask[mask == 0] = transparency
+
+    rgb_image = to_rgb(single_image, highlight_optimized_natural_color)
+    masked_image = apply_mask_to_image(mask, rgb_image)
+    plot_image(masked_image)
+    plt.show()
 
 def generate_mask_image(bbox, gaard):
     # Replace (100, 100 by shapes): image.shape[1], image.shape[0]
