@@ -184,10 +184,10 @@ class SentinelDatasetIterator:
             self.__tuples = tuples or []
             self.__shuffle = shuffle or False
 
-    def split(self, split_ratio=0.8, shuffle=True):
+    def split(self, split_ratio=0.8, shuffle=True, rand_seed=None):
         it = SentinelDatasetIterator(source=self)
         if shuffle:
-            random.shuffle(it.__tuples)
+            random.Random(rand_seed).shuffle(it.__tuples)
 
         n = int(len(self) * split_ratio)
         return it[:n], it[n:]
