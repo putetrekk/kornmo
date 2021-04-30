@@ -153,7 +153,7 @@ def generate_alternative_outcomes(data_df, model, y_column, remove_from_training
         plt.show()
 
 
-def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True):
+def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True, save_file: str=None):
     percentiles = np.linspace(0, 100, n_bins+1)
     bins = np.percentile(facts, percentiles).astype(int)
 
@@ -195,9 +195,11 @@ def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True):
 
     ax.set_xlabel("Fact")
     ax.set_ylabel("Prediction")
+    if save_file is not None:
+        plt.savefig(save_file, dpi=600)
     plt.show()
 
-def plot_history(history):
+def plot_history(history, save_file: str=None):
     sns.set_style('whitegrid')
     sns.set_context("paper")
     
@@ -207,4 +209,6 @@ def plot_history(history):
     plt.plot(history.history['val_loss'], label="val_loss")
     plt.legend()
     plt.title("Mean absolute error loss")
+    if save_file is not None:
+        plt.savefig(save_file, dpi=600)
     plt.grid()
