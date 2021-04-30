@@ -96,7 +96,7 @@ class SentinelDataset:
         return f"images/{farmer_id}/{year}" in self.labels
     
     def copy_to(self, output_file: str, compression:int=0):
-        from tqdm.auto import tqdm
+        from tqdm.autonotebook import tqdm
         
         c_args = {}
         if compression > 0:
@@ -110,7 +110,7 @@ class SentinelDataset:
 
     @staticmethod
     def combine_datasets(datasets, output_file: str, compression: int=0):
-        from tqdm.auto import tqdm
+        from tqdm.autonotebook import tqdm
         
         c_args = {}
         if compression > 0:
