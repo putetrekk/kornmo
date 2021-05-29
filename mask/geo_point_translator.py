@@ -1,18 +1,15 @@
 import math
 
-# Code gotten from stackoverflow
+# Initial code gotten from https://stackoverflow.com/questions/16266809/convert-from-latitude-longitude-to-x-y
+# with some minor adjustments
 class GeoPointTranslator:
     # Initiate with the center coordinates of the farm.
     # A bounding box will be created, to represent the frame
     # of the sentinel image.
-    radius = 6.371  # Earth Radius in Km
+    radius = 6371  # Earth Radius in Km
 
     def __init__(self, bounding_box_geo):
-
         self.lng_min, self.lat_min, self.lng_max, self.lat_max = bounding_box_geo.exterior.bounds
-
-        # real field:
-
         self.p0 = {
             'srcX': 0,
             'srcY': 0,
