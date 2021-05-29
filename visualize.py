@@ -153,9 +153,12 @@ def generate_alternative_outcomes(data_df, model, y_column, remove_from_training
         plt.show()
 
 
-def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True, save_file: str=None):
-    percentiles = np.linspace(0, 100, n_bins+1)
-    bins = np.percentile(facts, percentiles).astype(int)
+def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True, percentile_bins=True, save_file: str=None):
+    if percentile_bins:
+        percentiles = np.linspace(0, 100, n_bins+1)
+        bins = np.percentile(facts, percentiles).astype(int)
+    else:
+        bins = np.linspace(0, np.ceil(np.max(facts)), n_bins+1).astype(int)
 
     bin_labels = [str(bin) for bin in bins]
     bin_labels = [bin_labels[1]] + bin_labels[2:-1] + [bin_labels[-1]]
