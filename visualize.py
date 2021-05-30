@@ -170,7 +170,7 @@ def plot_confusion_matrix(predictions, facts, n_bins=15, annot=True, percentile_
     confusion_matrix = confusion_matrix.iloc[::-1] # flip the prediction axis
 
     plt.figure(figsize=(14,9))
-    plt.title("Discretized predictions from percentile bins", fontdict={'fontsize': 18})
+    plt.title(f'Discretized predictions{" from percentile bins" if percentile_bins else ""}', fontdict={'fontsize': 18})
 
     sns.set_style('whitegrid')
     sns.set_context("paper")
