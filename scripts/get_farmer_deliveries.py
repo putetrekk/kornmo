@@ -1,6 +1,6 @@
 import pandas as pd
 from functools import reduce
-
+import os
 
 def get_deliveries(year, url):
     deliveries = pd.read_csv(url, sep=";")
@@ -52,5 +52,23 @@ for sum_column, columns in sum_cols.items():
 
 data = deliveries_summed
 
+# create the directory if not exists
+def export_df_to_dir(df, directory, filename):
+    """Exports a Pandas DataFrame to a directory, and creates the directory if it does not exist.
+
+    Args:
+        df (pandas.DataFrame): The Pandas DataFrame to export.
+        directory (str): The directory to export the DataFrame to.
+        filename (str): The filename to export the DataFrame as.
+    """
+
+    # Create the directory if it does not exist.
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Export the DataFrame to the directory.
+    df.to_csv(os.path.join(directory, filename), index=False)
+
 # Export to csv
-data.to_csv("data/landbruksdir/raw/farmer_deliveries.csv", index=False)
+# data.to_csv("data/landbruksdir/raw/farmer_deliveries.csv", index=False)
+export_df_to_dir(data, "data/landbruksdir/raw/", "farmer_deliveries.csv")
